@@ -12,7 +12,7 @@ Ever find yourself with 50 directories named `test`, `test2`, `new-test`, `actua
 
 # What it does
 
-![Fuzzy Search Demo](assets/try-fuzzy-search-demo.gif)
+![Fuzzy Search Demo](docs/try-fuzzy-search-demo.gif)
 
 *[View interactive version on asciinema](https://asciinema.org/a/ve8AXBaPhkKz40YbqPTlVjqgs)*
 
@@ -30,7 +30,7 @@ Instantly navigate through all your experiment directories with:
 curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh
 ```
 
-This downloads a pre-compiled static binary to `~/.local/bin/try`. Then add to your shell:
+This downloads a pre-compiled binary to `~/.local/bin/try` (statically linked on Linux, verified against the release `SHA256SUMS`). Then add to your shell:
 
 ```bash
 # Bash/Zsh - add to ~/.zshrc or ~/.bashrc
@@ -45,6 +45,15 @@ You can also specify a custom tries path and install directory:
 ```bash
 curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh -s -- --path ~/my-tries --dir /usr/local/bin
 ```
+
+Or pin a specific release:
+
+```bash
+curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh -s -- --version v1.10.1
+```
+
+Pre-built binaries are published for `x86_64`/`aarch64` on Linux and macOS. If your
+platform has no binary, the script tells you and points at `make build`.
 
 ### Build from source
 
