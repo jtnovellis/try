@@ -345,9 +345,11 @@ fn cmd_init(args: &[String], _tries_path: &str) {
     });
 
     let default_path = shell::expand_tilde("~/src/tries");
-    let shell_type = if shell::is_fish() { "fish" } else { "bash" };
+    // Same detection as `try install`, so `init` and `install` agree — notably
+    // for PowerShell, which needs a different snippet than the bash/zsh one.
+    let shell_type = shell::detect_shell().unwrap_or_else(|| "bash".to_string());
     let snippet = shell::init_snippet(
-        shell_type,
+        &shell_type,
         &script_path,
         explicit_path.as_deref(),
         &default_path,

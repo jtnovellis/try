@@ -203,6 +203,50 @@ ANSI escape sequences are preserved intact - never split a color code pair.
 └──────────────────────────────────────────────────────────────┘
 ```
 
+## Terminal Lifecycle
+
+The selector puts the terminal into raw mode so it can read keys byte-by-byte,
+and must hand it back exactly as it found it.
+
+### Raw mode
+
+- Save the current terminal state (`stty -g`) **before** switching to raw mode.
+- `stty` reads the terminal from its own **stdin**, so the save must inherit the
+  real tty. A save that runs with stdin on `/dev/null` fails and yields an empty
+  state — restoring nothing.
+- Restore the saved state on **every** exit path: select, cancel, delete, rename,
+  graduate, and create.
+- Raw mode clears `ISIG`, so while the selector is running Ctrl-C arrives as the
+  byte `0x03` rather than as `SIGINT`. It must be handled as a key. If raw mode
+  is never undone, the terminal keeps `ISIG` off after exit and Ctrl-C can no
+  longer interrupt anything.
+
+**After exit, `ISIG`, `ICANON`, and `ECHO` must all be back on.**
+
+### Reading input
+
+- Check readiness with `poll(2)` before reading; do not rely on `O_NONBLOCK`,
+  whose value differs per platform (`0x4` on macOS/BSD, `0o4000` on Linux) and
+  which silently turns "non-blocking" reads into permanent hangs when wrong.
+- Read from the terminal file descriptor directly. Reading through a buffered
+  reader pulls bytes into userspace where readiness checks cannot see them.
+- A bare Esc and the start of an escape sequence are the same byte (`0x1b`).
+  After reading it, wait a bounded interval (50ms) for a continuation byte:
+  if none arrives, the key was a standalone Esc. Waiting without a bound freezes
+  the selector on every Esc keypress.
+- Discarding pending input on exit must be non-blocking: check readiness first,
+  and stop as soon as nothing is pending.
+
+### Exit codes
+
+| Outcome | Exit code | stdout |
+|---------|-----------|--------|
+| Action selected | 0 | shell script to eval |
+| Cancelled (Esc / Ctrl-C) | 1 | `Cancelled.` |
+
+The shell wrapper evals stdout on exit 0 and echoes it otherwise, so a cancel
+must not emit a script.
+
 ## Keyboard Input
 
 ### Navigation
@@ -226,10 +270,14 @@ ANSI escape sequences are preserved intact - never split a color code pair.
 | Ctrl-F / Right arrow | Move cursor forward one character |
 | Backspace / Ctrl-H | Delete character before cursor |
 | Delete | Delete character after cursor |
-| Ctrl-K | Delete from cursor to end of line |
+| Ctrl-K | Delete from cursor to end of line — **dialogs only**; in the selector Ctrl-K navigates up (see Navigation), so the list claims it first |
 | Ctrl-U | Delete from start of line to cursor |
 | Ctrl-W | Delete word before cursor (alphanumeric boundaries) |
 | Any printable | Insert at cursor, re-filter |
+
+Printable means any single non-control character, not any single *byte*: a
+UTF-8 scalar (accented letters, CJK, emoji) arrives as two to four bytes and
+must be reassembled into one character before it reaches the field.
 
 ## Scrolling
 

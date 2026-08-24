@@ -33,3 +33,27 @@ if echo "$output" | grep -qF "$TRY_BIN_PATH"; then
 else
     fail "init should contain real, full path to try binary" "$TRY_BIN_PATH" "$output" "init_spec.md"
 fi
+
+# Test: init detects PowerShell and emits a pwsh function, matching `install`
+# (init used to only ever choose between fish and bash).
+output=$(SHELL= PSModulePath='C:\Program Files\PowerShell\Modules' try_run init "$TEST_TRIES" 2>&1)
+if echo "$output" | grep -q "function try {"; then
+    pass
+else
+    fail "init with PowerShell should emit a pwsh function" "function try {" "$output" "init_spec.md"
+fi
+
+# Test: the pwsh function invokes try and evaluates its output
+if echo "$output" | grep -q "Invoke-Expression"; then
+    pass
+else
+    fail "pwsh function should eval try output" "Invoke-Expression" "$output" "init_spec.md"
+fi
+
+# Test: zsh gets the POSIX function (bash and zsh share one snippet)
+output=$(SHELL=/bin/zsh try_run init "$TEST_TRIES" 2>&1)
+if echo "$output" | grep -q "try() {"; then
+    pass
+else
+    fail "init with zsh should emit a POSIX function" "try() {" "$output" "init_spec.md"
+fi

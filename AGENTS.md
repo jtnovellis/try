@@ -36,7 +36,7 @@
 ## Build, Test, and Development Commands
 - `make` / `make test`: Build the release binary and run the spec compliance test suite.
 - `make build`: Build the release binary (`cargo build --release`).
-- `cargo test`: Run any Rust unit tests (currently none; spec tests are shell-based).
+- `cargo test`: Run the Rust unit tests (terminal primitives); the broader spec suite is shell-based.
 - `nix run`: Run the packaged CLI (e.g. `nix run . -- --help`).
 - `nix build`: Build the binary derivation; output at `./result/bin/try`.
 - `./target/release/try init ~/src/tries`: Emit shell function for your shell config.
@@ -60,6 +60,7 @@ Coding conventions:
 - `spec/tests/runner.sh`: Test runner that executes all `test_*.sh` files against any `try` binary.
 - Run tests: `./spec/tests/runner.sh /path/to/try` (supports wrappers like valgrind).
 - `spec/tests/runner_and_compare.sh`: Compare two `try` implementations byte-for-byte.
+- `spec/tests/pty_drive.py`: Drives a binary inside a real pty (used by the tty-lifecycle tests); the `--and-keys` hooks bypass the terminal and cannot catch raw-mode or stdin-readiness bugs.
 
 **Important**: Specs must reflect the full feature set of `try`. They serve as the canonical reference for behavior, enabling new implementations (in any language) to be validated against the same test suite. When adding or changing features, update both the relevant spec markdown and add corresponding tests.
 

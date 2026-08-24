@@ -108,9 +108,11 @@ else
 fi
 
 # Test: Symlink target matches the mv destination
-mv_dest=$(echo "$output" | grep "^mv \|^  mv " | grep -oP "'\K[^']+(?=')" | tail -1)
-ln_target=$(echo "$output" | grep "ln -s " | grep -oP "'\K[^']+(?=')" | head -1)
-if [ "$mv_dest" = "$ln_target" ]; then
+# awk, not `grep -oP`: BSD grep has no -P, so on macOS both values came back
+# empty and this assertion passed without comparing anything.
+mv_dest=$(echo "$output" | grep "^mv \|^  mv " | awk -F"'" '{print $(NF-1)}' | tail -1)
+ln_target=$(echo "$output" | grep "ln -s " | awk -F"'" '{print $2}' | head -1)
+if [ -n "$mv_dest" ] && [ "$mv_dest" = "$ln_target" ]; then
     pass
 else
     fail "Symlink target should match mv destination" "$mv_dest" "$ln_target" "graduate"
