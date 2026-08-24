@@ -207,7 +207,8 @@ if ! "$DEST" --version >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "Installed $("$DEST" --version) to $DEST"
+# try prints --version to stderr on purpose: the shell wrapper evals stdout.
+echo "Installed $("$DEST" --version 2>&1) to $DEST"
 echo ""
 
 case "$INSTALL_DIR" in
