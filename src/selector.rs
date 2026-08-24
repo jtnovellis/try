@@ -1,17 +1,16 @@
-/// TrySelector — the interactive directory selector.
-/// Port of the TrySelector class in try.rb.
+//! TrySelector — the interactive directory selector.
+//! Port of the TrySelector class in try.rb.
 
 use crate::ansi::{ansi, metrics, palette, text};
-use crate::tui;
 use crate::fuzzy::{self, DirEntry};
 use crate::term;
+use crate::tui;
 use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct TrySelector {
-    search_term: String,
     cursor_pos: usize,
     scroll_offset: usize,
     search: tui::InputField,
@@ -34,11 +33,27 @@ pub struct TrySelector {
 
 #[derive(Clone)]
 pub enum Selection {
-    Cd { path: String },
-    Mkdir { path: String },
-    Delete { paths: Vec<(String, String)>, base_path: String },
-    Rename { old: String, new: String, base_path: String },
-    Ascend { source: String, dest: String, basename: String, base_path: String },
+    Cd {
+        path: String,
+    },
+    Mkdir {
+        path: String,
+    },
+    Delete {
+        paths: Vec<(String, String)>,
+        base_path: String,
+    },
+    Rename {
+        old: String,
+        new: String,
+        base_path: String,
+    },
+    Ascend {
+        source: String,
+        dest: String,
+        basename: String,
+        base_path: String,
+    },
     Cancel,
 }
 
@@ -70,7 +85,6 @@ impl TrySelector {
         let test_had_keys = !test_keys.is_empty();
 
         TrySelector {
-            search_term,
             cursor_pos: 0,
             scroll_offset: 0,
             search: tui::InputField::new("", &initial, None),
@@ -102,7 +116,10 @@ impl TrySelector {
 
         if !term::is_stdin_tty() || !term::is_stderr_tty() {
             if self.test_keys.is_empty() {
-                let _ = writeln!(std::io::stderr(), "Error: try requires an interactive terminal");
+                let _ = writeln!(
+                    std::io::stderr(),
+                    "Error: try requires an interactive terminal"
+                );
                 return None;
             }
             self.main_loop();
@@ -192,13 +209,6 @@ impl TrySelector {
                     .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
                     .map(|d| d.as_secs_f64())
                     .unwrap_or(0.0);
-                let ctime = metadata
-                    .created()
-                    .ok()
-                    .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-                    .map(|d| d.as_secs_f64())
-                    .unwrap_or(mtime);
-
                 let hours_since_access = (now - mtime) / 3600.0;
                 let base_score = 3.0 / (hours_since_access + 1.0).sqrt();
 
@@ -230,7 +240,6 @@ impl TrySelector {
                     base_score,
                     path: real_path,
                     is_symlink,
-                    ctime_secs: ctime,
                     mtime_secs: mtime,
                 });
             }
@@ -319,7 +328,8 @@ impl TrySelector {
                     // Ctrl-D - toggle mark for deletion
                     if self.cursor_pos < tries.len() {
                         let path = tries[self.cursor_pos].entry().path.clone();
-                        if let Some(pos) = self.marked_for_deletion.iter().position(|p| *p == path) {
+                        if let Some(pos) = self.marked_for_deletion.iter().position(|p| *p == path)
+                        {
                             self.marked_for_deletion.remove(pos);
                         } else {
                             self.marked_for_deletion.push(path);
@@ -387,9 +397,8 @@ impl TrySelector {
                 return None;
             }
             // Poll stdin with timeout
-            match self.poll_stdin(100) {
-                Some(true) => return term::read_keypress(),
-                _ => {}
+            if let Some(true) = self.poll_stdin(100) {
+                return term::read_keypress();
             }
         }
     }
@@ -434,7 +443,8 @@ impl TrySelector {
         {
             let line = screen.header.add_line(None);
             line.left_mut().write_str(&emoji("🏠"));
-            line.left_mut().write_str(&text::accent(" Try Directory Selection"));
+            line.left_mut()
+                .write_str(&text::accent(" Try Directory Selection"));
 
             let line = screen.header.add_line(None);
             line.left_mut().write_fill(&tui::fill("─"));
@@ -474,7 +484,11 @@ impl TrySelector {
         // Body
         let header_lines = screen.header.lines.len();
         let footer_lines = screen.footer.lines.len();
-        let max_visible = screen.height.saturating_sub(header_lines).saturating_sub(footer_lines).max(3);
+        let max_visible = screen
+            .height
+            .saturating_sub(header_lines)
+            .saturating_sub(footer_lines)
+            .max(3);
         let show_create_new = !self.search.text.is_empty();
         let total_items = tries.len() + if show_create_new { 1 } else { 0 };
 
@@ -519,7 +533,11 @@ impl TrySelector {
             }
             Some(bg)
         } else if is_selected {
-            Some(format!("{}{}", palette::selected_bg(), palette::selected_fg()))
+            Some(format!(
+                "{}{}",
+                palette::selected_bg(),
+                palette::selected_fg()
+            ))
         } else {
             None
         };
@@ -554,7 +572,10 @@ impl TrySelector {
 
         let max_name_width = width.saturating_sub(prefix_width).saturating_sub(1);
         let display_rendered = if plain_name.len() > max_name_width && max_name_width > 2 {
-            format!("{}…", truncate_with_ansi(&rendered_name, max_name_width.saturating_sub(1)))
+            format!(
+                "{}…",
+                truncate_with_ansi(&rendered_name, max_name_width.saturating_sub(1))
+            )
         } else {
             rendered_name
         };
@@ -569,7 +590,11 @@ impl TrySelector {
 
     fn render_create_line(&self, screen: &mut tui::Screen, is_selected: bool, _width: usize) {
         let background = if is_selected {
-            Some(format!("{}{}", palette::selected_bg(), palette::selected_fg()))
+            Some(format!(
+                "{}{}",
+                palette::selected_bg(),
+                palette::selected_fg()
+            ))
         } else {
             None
         };
@@ -597,11 +622,7 @@ impl TrySelector {
         }
     }
 
-    fn formatted_entry_name(
-        &self,
-        entry: &fuzzy::MatchResult,
-        selected: bool,
-    ) -> (String, String) {
+    fn formatted_entry_name(&self, entry: &fuzzy::MatchResult, selected: bool) -> (String, String) {
         let basename = &entry.entry().text;
         let positions = entry.positions();
 
@@ -612,7 +633,9 @@ impl TrySelector {
             && basename.as_bytes()[10] == b'-'
             && basename.as_bytes()[0..4].iter().all(|b| b.is_ascii_digit())
             && basename.as_bytes()[5..7].iter().all(|b| b.is_ascii_digit())
-            && basename.as_bytes()[8..10].iter().all(|b| b.is_ascii_digit())
+            && basename.as_bytes()[8..10]
+                .iter()
+                .all(|b| b.is_ascii_digit())
         {
             let date_part = &basename[..10];
             let name_part = &basename[11..];
@@ -650,7 +673,13 @@ impl TrySelector {
             let pos_set: HashSet<usize> = positions.iter().cloned().collect();
             (
                 basename.clone(),
-                highlight_with_positions(basename, &pos_set, 0, selected, &self.selected_foreground()),
+                highlight_with_positions(
+                    basename,
+                    &pos_set,
+                    0,
+                    selected,
+                    &self.selected_foreground(),
+                ),
             )
         }
     }
@@ -665,8 +694,8 @@ impl TrySelector {
         let date_prefix = crate::date::today_date_prefix();
 
         if !self.search.text.is_empty() {
-            let final_name = format!("{}-{}", date_prefix, self.search.text)
-                .replace(char::is_whitespace, "-");
+            let final_name =
+                format!("{}-{}", date_prefix, self.search.text).replace(char::is_whitespace, "-");
             let full_path = Path::new(&self.base_path).join(&final_name);
             self.selected = Some(Selection::Mkdir {
                 path: full_path.to_string_lossy().to_string(),
@@ -694,8 +723,7 @@ impl TrySelector {
                 return;
             }
 
-            let final_name = format!("{}-{}", date_prefix, entry)
-                .replace(char::is_whitespace, "-");
+            let final_name = format!("{}-{}", date_prefix, entry).replace(char::is_whitespace, "-");
             let full_path = Path::new(&self.base_path).join(&final_name);
             self.selected = Some(Selection::Mkdir {
                 path: full_path.to_string_lossy().to_string(),
@@ -707,8 +735,7 @@ impl TrySelector {
         let marked_items: Vec<fuzzy::MatchResult> = tries
             .iter()
             .filter(|t| self.marked_for_deletion.contains(&t.entry().path))
-            .cloned()
-            .map(|r| fuzzy::MatchResult::from(&r))
+            .map(fuzzy::MatchResult::from)
             .collect();
 
         if marked_items.is_empty() {
@@ -779,7 +806,11 @@ impl TrySelector {
         line.left_mut().write_str(&text::accent(&format!(
             "  Delete {} {}?",
             count,
-            if count == 1 { "directory" } else { "directories" }
+            if count == 1 {
+                "directory"
+            } else {
+                "directories"
+            }
         )));
 
         let line = screen.header.add_line(None);
@@ -788,7 +819,8 @@ impl TrySelector {
         for item in marked_items {
             let line = screen.body.add_line(Some(palette::danger_bg()));
             line.left_mut().write_str(&emoji("🗑️"));
-            line.left_mut().write_str(&format!(" {}", item.entry().text));
+            line.left_mut()
+                .write_str(&format!(" {}", item.entry().text));
         }
 
         screen.body.add_line(None);
@@ -801,7 +833,10 @@ impl TrySelector {
         let input_width = confirmation_buffer.len().max(confirmation_cursor + 1);
         let prefix_width = metrics::visible_width(prefix);
         let max_content = screen.width.saturating_sub(1);
-        let center_start = (max_content.saturating_sub(prefix_width).saturating_sub(input_width)) / 2;
+        let center_start = (max_content
+            .saturating_sub(prefix_width)
+            .saturating_sub(input_width))
+            / 2;
         line.mark_has_input(center_start + prefix_width);
 
         let line = screen.footer.add_line(None);
@@ -916,7 +951,8 @@ impl TrySelector {
 
         let line = screen.header.add_line(None);
         line.left_mut().write_str(&emoji("✏️"));
-        line.left_mut().write_str(&text::accent("  Rename directory"));
+        line.left_mut()
+            .write_str(&text::accent("  Rename directory"));
 
         let line = screen.header.add_line(None);
         line.left_mut().write_fill(&tui::fill("─"));
@@ -935,7 +971,10 @@ impl TrySelector {
         let input_width = rename_buffer.len().max(rename_cursor + 1);
         let prefix_width = metrics::visible_width(prefix);
         let max_content = screen.width.saturating_sub(1);
-        let center_start = (max_content.saturating_sub(prefix_width).saturating_sub(input_width)) / 2;
+        let center_start = (max_content
+            .saturating_sub(prefix_width)
+            .saturating_sub(input_width))
+            / 2;
         line.mark_has_input(center_start + prefix_width);
 
         if let Some(err) = rename_error {
@@ -953,9 +992,7 @@ impl TrySelector {
     }
 
     fn finalize_rename(&mut self, entry: &DirEntry, rename_buffer: &str) -> Result<(), String> {
-        let new_name = rename_buffer
-            .trim()
-            .replace(char::is_whitespace, "-");
+        let new_name = rename_buffer.trim().replace(char::is_whitespace, "-");
 
         if new_name.is_empty() {
             return Err("Name cannot be empty".to_string());
@@ -1008,11 +1045,7 @@ impl TrySelector {
         };
 
         let default_dest = Path::new(&projects_dir).join(project_name);
-        let mut input = tui::InputField::new(
-            "",
-            &default_dest.to_string_lossy(),
-            None,
-        );
+        let mut input = tui::InputField::new("", &default_dest.to_string_lossy(), None);
         let mut ascend_error: Option<String> = None;
 
         loop {
@@ -1062,7 +1095,8 @@ impl TrySelector {
 
         let line = screen.header.add_line(None);
         line.left_mut().write_str(&emoji("🚀"));
-        line.left_mut().write_str(&text::accent("  Graduate try to project"));
+        line.left_mut()
+            .write_str(&text::accent("  Graduate try to project"));
 
         let line = screen.header.add_line(None);
         line.left_mut().write_fill(&tui::fill("─"));
@@ -1078,7 +1112,8 @@ impl TrySelector {
             "parent of $TRY_PATH"
         };
         let line = screen.body.add_line(None);
-        line.center_mut().write_dim(&format!("Destination ({}: {})", env_hint, projects_dir));
+        line.center_mut()
+            .write_dim(&format!("Destination ({}: {})", env_hint, projects_dir));
 
         screen.body.add_line(None);
         let line = screen.body.add_line(None);
@@ -1089,12 +1124,16 @@ impl TrySelector {
         let input_width = ascend_buffer.len().max(ascend_cursor + 1);
         let prefix_width = metrics::visible_width(prefix);
         let max_content = screen.width.saturating_sub(1);
-        let center_start = (max_content.saturating_sub(prefix_width).saturating_sub(input_width)) / 2;
+        let center_start = (max_content
+            .saturating_sub(prefix_width)
+            .saturating_sub(input_width))
+            / 2;
         line.mark_has_input(center_start + prefix_width);
 
         screen.body.add_line(None);
         let line = screen.body.add_line(None);
-        line.center_mut().write_dim("A symlink will be left in the tries directory");
+        line.center_mut()
+            .write_dim("A symlink will be left in the tries directory");
 
         if let Some(err) = ascend_error {
             screen.body.add_line(None);
@@ -1230,20 +1269,11 @@ fn emoji(ch: &str) -> String {
 
 // FdSet for poll()
 #[repr(C)]
+#[derive(Default)]
 struct FdSet {
     fd: i32,
     events: i16,
     revents: i16,
-}
-
-impl Default for FdSet {
-    fn default() -> Self {
-        FdSet {
-            fd: 0,
-            events: 0,
-            revents: 0,
-        }
-    }
 }
 
 #[allow(non_camel_case_types)]

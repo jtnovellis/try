@@ -112,7 +112,12 @@ pub fn shell_rc_file(shell: &str) -> Option<String> {
 }
 
 /// Generate the init snippet for a given shell.
-pub fn init_snippet(shell: &str, script_path: &str, explicit_path: Option<&str>, default_path: &str) -> String {
+pub fn init_snippet(
+    shell: &str,
+    script_path: &str,
+    explicit_path: Option<&str>,
+    default_path: &str,
+) -> String {
     match shell {
         "fish" => {
             let path_arg = if let Some(p) = explicit_path {
@@ -141,7 +146,10 @@ end
             let path_expr = if let Some(p) = explicit_path {
                 format!("'{}'", p)
             } else {
-                format!("$(if ($env:TRY_PATH) {{ $env:TRY_PATH }} else {{ '{}' }})", default_path)
+                format!(
+                    "$(if ($env:TRY_PATH) {{ $env:TRY_PATH }} else {{ '{}' }})",
+                    default_path
+                )
             };
             format!(
                 r#"function try {{

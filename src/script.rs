@@ -5,10 +5,7 @@ pub const SCRIPT_WARNING: &str =
 
 /// Shell-quote a single-quoted string (Ruby's q() equivalent).
 pub fn q(s: &str) -> String {
-    format!(
-        "'{}'",
-        s.replace('\'', "'\"'\"'")
-    )
+    format!("'{}'", s.replace('\'', "'\"'\"'"))
 }
 
 /// Emit a shell script: warning comment + commands chained with `&& \`.
@@ -48,7 +45,13 @@ pub fn script_mkdir_cd(path: &str) -> Vec<String> {
 pub fn script_clone(path: &str, uri: &str) -> Vec<String> {
     let mut cmds = vec![
         format!("mkdir -p {}", q(path)),
-        format!("echo {}", q(&format!("Using git clone to create this trial from {}.", uri))),
+        format!(
+            "echo {}",
+            q(&format!(
+                "Using git clone to create this trial from {}.",
+                uri
+            ))
+        ),
         format!("git clone '{}' {}", uri, q(path)),
     ];
     cmds.extend(script_cd(path));
@@ -61,7 +64,10 @@ pub fn script_clone_pr(path: &str, uri: &str, pr_id: &str) -> Vec<String> {
         format!("mkdir -p {}", q(path)),
         format!(
             "echo {}",
-            q(&format!("Using git clone to create this trial from {} PR #{}.", uri, pr_id))
+            q(&format!(
+                "Using git clone to create this trial from {} PR #{}.",
+                uri, pr_id
+            ))
         ),
         format!("git clone {} {}", q(uri), q(path)),
         format!("git -C {} fetch origin {}", q(path), q(&ref_str)),
@@ -84,10 +90,20 @@ pub fn script_worktree(path: &str, repo: Option<&str>) -> Vec<String> {
             p = q(path)
         )
     };
-    let src = repo.map(|r| r.to_string()).unwrap_or_else(|| std::env::current_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_default());
+    let src = repo.map(|r| r.to_string()).unwrap_or_else(|| {
+        std::env::current_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default()
+    });
     let mut cmds = vec![
         format!("mkdir -p {}", q(path)),
-        format!("echo {}", q(&format!("Using git worktree to create this trial from {}.", src))),
+        format!(
+            "echo {}",
+            q(&format!(
+                "Using git worktree to create this trial from {}.",
+                src
+            ))
+        ),
         worktree_cmd,
     ];
     cmds.extend(script_cd(path));
@@ -122,12 +138,7 @@ pub fn script_rename(base_path: &str, old_name: &str, new_name: &str) -> Vec<Str
     cmds
 }
 
-pub fn script_ascend(
-    source: &str,
-    dest: &str,
-    basename: &str,
-    base_path: &str,
-) -> Vec<String> {
+pub fn script_ascend(source: &str, dest: &str, basename: &str, base_path: &str) -> Vec<String> {
     let symlink_path = Path::new(base_path).join(basename);
     let symlink_path = symlink_path.to_string_lossy().to_string();
 
@@ -256,7 +267,8 @@ pub fn resolve_unique_name_with_versioning(
     loop {
         n += 1;
         let candidate_base = format!("{}{}", stem, n);
-        let candidate_full = Path::new(tries_path).join(format!("{}-{}", date_prefix, candidate_base));
+        let candidate_full =
+            Path::new(tries_path).join(format!("{}-{}", date_prefix, candidate_base));
         if !candidate_full.exists() {
             return candidate_base;
         }
@@ -277,8 +289,8 @@ pub fn worktree_path(tries_path: &str, repo_dir: &str, custom_name: Option<&str>
                 .unwrap_or_default()
         }
     } else {
-        let real = std::fs::canonicalize(repo_dir)
-            .unwrap_or_else(|_| std::path::PathBuf::from(repo_dir));
+        let real =
+            std::fs::canonicalize(repo_dir).unwrap_or_else(|_| std::path::PathBuf::from(repo_dir));
         real.file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_default()

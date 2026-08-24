@@ -4,7 +4,6 @@ use std::path::Path;
 pub struct GitUri {
     pub user: String,
     pub repo: String,
-    pub host: String,
 }
 
 pub struct GithubPr {
@@ -16,14 +15,10 @@ pub struct GithubPr {
 
 /// Strip a trailing `.git` suffix from a URI string.
 fn strip_git_suffix(uri: &str) -> &str {
-    if uri.ends_with(".git") {
-        &uri[..uri.len() - 4]
-    } else {
-        uri
-    }
+    uri.strip_suffix(".git").unwrap_or(uri)
 }
 
-/// Parse a git URI into user/repo/host components.
+/// Parse a git URI into user/repo components.
 /// Matches the Ruby `parse_git_uri` ordering exactly.
 pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
     let uri = strip_git_suffix(raw_uri);
@@ -33,7 +28,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[0].clone(),
             repo: caps[1].clone(),
-            host: "github.com".to_string(),
         });
     }
 
@@ -42,7 +36,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[0].clone(),
             repo: caps[1].clone(),
-            host: "github.com".to_string(),
         });
     }
 
@@ -51,7 +44,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[1].clone(),
             repo: caps[2].clone(),
-            host: caps[0].clone(),
         });
     }
 
@@ -65,7 +57,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[1].clone(),
             repo,
-            host: caps[0].clone(),
         });
     }
 
@@ -79,7 +70,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[1].clone(),
             repo,
-            host: caps[0].clone(),
         });
     }
 
@@ -93,7 +83,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[0].clone(),
             repo,
-            host: caps[1].clone(),
         });
     }
 
@@ -142,10 +131,9 @@ pub fn generate_clone_directory_name(git_uri: &str, custom_name: Option<&str>) -
     // Try PR first, then regular git URI. Both expose user/repo for the name.
     let (user, repo) = if let Some(pr) = github_pr_details(git_uri) {
         (pr.user, pr.repo)
-    } else if let Some(g) = parse_git_uri(git_uri) {
-        (g.user, g.repo)
     } else {
-        return None;
+        let g = parse_git_uri(git_uri)?;
+        (g.user, g.repo)
     };
 
     let date_prefix = crate::date::today_date_prefix();
@@ -187,8 +175,8 @@ enum Node {
 }
 
 enum RepKind {
-    Plus,    // one or more
-    Star,    // zero or more
+    Plus,     // one or more
+    Star,     // zero or more
     Question, // zero or one
 }
 
@@ -349,6 +337,7 @@ impl Regex {
         self.match_seq(inner, 0, bytes, pos, groups)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn match_repeat(
         &self,
         inner: &Node,
@@ -385,6 +374,7 @@ impl Regex {
 
     /// Match `min` or more repetitions (up to `max` if specified) of `inner`.
     /// Tries greedily (longest first).
+    #[allow(clippy::too_many_arguments)]
     fn match_repeat_n(
         &self,
         inner: &Node,
@@ -401,6 +391,7 @@ impl Regex {
         self.repeat_backtrack(inner, min, max, 0, nodes, idx, bytes, pos, groups)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn repeat_backtrack(
         &self,
         inner: &Node,
@@ -414,14 +405,22 @@ impl Regex {
         groups: &mut Vec<String>,
     ) -> Option<usize> {
         // Try matching one more (greedy), unless we've hit max
-        let can_match_more = max.map_or(true, |m| count < m);
+        let can_match_more = max.is_none_or(|m| count < m);
         if can_match_more {
             let groups_len = groups.len();
             if let Some(end) = self.match_single(inner, bytes, pos, groups) {
                 if end > pos {
-                    if let Some(final_end) =
-                        self.repeat_backtrack(inner, min, max, count + 1, nodes, idx, bytes, end, groups)
-                    {
+                    if let Some(final_end) = self.repeat_backtrack(
+                        inner,
+                        min,
+                        max,
+                        count + 1,
+                        nodes,
+                        idx,
+                        bytes,
+                        end,
+                        groups,
+                    ) {
                         return Some(final_end);
                     }
                 }
@@ -501,9 +500,8 @@ fn parse_nodes(bytes: &[u8], start: usize, end: usize) -> Option<(Vec<Node>, usi
     let mut i = start;
     while i < end {
         let (node, next) = parse_node(bytes, i, end)?;
-        match node {
-            Some(n) => nodes.push(n),
-            None => {}
+        if let Some(n) = node {
+            nodes.push(n)
         }
         i = next;
     }
@@ -531,10 +529,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                 _ => unreachable!(),
             };
             pos += 1;
-            return Some((
-                Some(Node::Repeat(Box::new(Node::NonCap(inner)), kind)),
-                pos,
-            ));
+            return Some((Some(Node::Repeat(Box::new(Node::NonCap(inner)), kind)), pos));
         }
         return Some((Some(Node::NonCap(inner)), after));
     }
@@ -552,10 +547,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                 _ => unreachable!(),
             };
             pos += 1;
-            return Some((
-                Some(Node::Repeat(Box::new(Node::Group(inner)), kind)),
-                pos,
-            ));
+            return Some((Some(Node::Repeat(Box::new(Node::Group(inner)), kind)), pos));
         }
         return Some((Some(Node::Group(inner)), after));
     }
@@ -576,10 +568,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                 _ => unreachable!(),
             };
             pos += 1;
-            return Some((
-                Some(Node::Repeat(Box::new(Node::Dot), kind)),
-                pos,
-            ));
+            return Some((Some(Node::Repeat(Box::new(Node::Dot), kind)), pos));
         }
         return Some((Some(Node::Dot), i + 1));
     }
@@ -597,10 +586,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                         _ => unreachable!(),
                     };
                     pos += 1;
-                    return Some((
-                        Some(Node::Repeat(Box::new(Node::Digit), kind)),
-                        pos,
-                    ));
+                    return Some((Some(Node::Repeat(Box::new(Node::Digit), kind)), pos));
                 }
                 return Some((Some(Node::Digit), i + 2));
             }
@@ -621,10 +607,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
             _ => unreachable!(),
         };
         pos += 1;
-        return Some((
-            Some(Node::Repeat(Box::new(Node::Literal(b)), kind)),
-            pos,
-        ));
+        return Some((Some(Node::Repeat(Box::new(Node::Literal(b)), kind)), pos));
     }
     Some((Some(Node::Literal(b)), i + 1))
 }
@@ -704,10 +687,7 @@ fn parse_char_class(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>,
         };
         pos += 1;
         return Some((
-            Some(Node::Repeat(
-                Box::new(Node::Class { ranges, negate }),
-                kind,
-            )),
+            Some(Node::Repeat(Box::new(Node::Class { ranges, negate }), kind)),
             pos,
         ));
     }

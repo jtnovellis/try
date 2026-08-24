@@ -1,9 +1,5 @@
-/// Fuzzy string matching with scoring and highlight positions.
-/// Direct port of lib/fuzzy.rb.
-
-pub struct FuzzyEntry {
-    pub data: DirEntry,
-}
+//! Fuzzy string matching with scoring and highlight positions.
+//! Direct port of lib/fuzzy.rb.
 
 /// Raw directory entry data loaded from the tries path.
 #[derive(Clone)]
@@ -13,7 +9,6 @@ pub struct DirEntry {
     pub base_score: f64,
     pub path: String,
     pub is_symlink: bool,
-    pub ctime_secs: f64,
     pub mtime_secs: f64,
 }
 
@@ -30,8 +25,6 @@ impl MatchResult {
     }
 }
 
-/// Pre-computed sqrt values for proximity bonus (gap 0-64)
-const SQRT_TABLE_LEN: usize = 65;
 fn sqrt_table(gap: usize) -> f64 {
     // 2.0 / sqrt(gap + 1)
     // Precompute at compile time would be ideal; compute at first use.
@@ -41,7 +34,12 @@ fn sqrt_table(gap: usize) -> f64 {
 
 /// Calculate the fuzzy match score for an entry against a query.
 /// Returns (score, positions) or None if no match.
-pub fn calculate_match(entry: &DirEntry, query: &str, query_lower: &str, query_chars: &[u8]) -> Option<(f64, Vec<usize>)> {
+pub fn calculate_match(
+    entry: &DirEntry,
+    query: &str,
+    query_lower: &str,
+    query_chars: &[u8],
+) -> Option<(f64, Vec<usize>)> {
     let mut positions = Vec::new();
     let mut score = entry.base_score;
 
@@ -84,7 +82,7 @@ pub fn calculate_match(entry: &DirEntry, query: &str, query_lower: &str, query_c
         // Proximity bonus (consecutive chars score higher)
         if last_pos >= 0 {
             let gap = (found as i64) - last_pos - 1;
-            if gap >= 0 && gap < 64 {
+            if (0..64).contains(&gap) {
                 score += sqrt_table(gap as usize);
             } else if gap >= 0 {
                 score += 2.0 / ((gap as f64 + 1.0).sqrt());
@@ -112,7 +110,8 @@ pub fn fuzzy_match(entries: &[DirEntry], query: &str) -> Vec<MatchResult> {
 
     let mut results = Vec::new();
     for entry in entries {
-        if let Some((score, positions)) = calculate_match(entry, query, &query_lower, &query_chars) {
+        if let Some((score, positions)) = calculate_match(entry, query, &query_lower, &query_chars)
+        {
             results.push(MatchResult {
                 entry: entry.clone(),
                 score,
@@ -122,7 +121,11 @@ pub fn fuzzy_match(entries: &[DirEntry], query: &str) -> Vec<MatchResult> {
     }
 
     // Sort by score descending (Spinel has no Array#max_by; full sort is fine at scale)
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     results
 }

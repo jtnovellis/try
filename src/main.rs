@@ -9,8 +9,8 @@ mod shell;
 mod term;
 mod tui;
 
-use std::path::Path;
 use std::io::Write;
+use std::path::Path;
 
 fn main() {
     let raw_args: Vec<String> = std::env::args().collect();
@@ -21,11 +21,15 @@ fn main() {
     ansi::init_colors_from_env();
 
     // Process color-related flags early (like the Ruby version)
-    let disable_colors = take_flag(&mut args, "--no-colors") || take_flag(&mut args, "--no-expand-tokens");
+    let disable_colors =
+        take_flag(&mut args, "--no-colors") || take_flag(&mut args, "--no-expand-tokens");
     if disable_colors {
         ansi::disable_colors();
     }
-    if std::env::var("NO_COLOR").map(|s| !s.is_empty()).unwrap_or(false) {
+    if std::env::var("NO_COLOR")
+        .map(|s| !s.is_empty())
+        .unwrap_or(false)
+    {
         ansi::disable_colors();
     }
 
@@ -44,7 +48,7 @@ fn main() {
     // Extract all options before getting command
     let tries_path = extract_option_with_value(&mut args, "--path")
         .map(|p| expand_path(&p))
-        .unwrap_or_else(|| selector::default_try_path());
+        .unwrap_or_else(selector::default_try_path);
     let tries_path = expand_path(&tries_path);
 
     // Test-only flags
@@ -55,29 +59,29 @@ fn main() {
 
     let command = args.first().cloned();
 
-    let result = match command.as_deref() {
+    match command.as_deref() {
         None => {
             cli::print_global_help();
             std::process::exit(2);
         }
         Some("clone") => {
-            let script = cmd_clone(&mut args, &tries_path);
+            let script = cmd_clone(&args, &tries_path);
             script::emit_script(&script);
             std::process::exit(0);
         }
         Some("init") => {
-            cmd_init(&mut args, &tries_path);
+            cmd_init(&args, &tries_path);
             std::process::exit(0);
         }
         Some("install") => {
-            cmd_install(&mut args, &tries_path);
+            cmd_install(&args, &tries_path);
         }
         Some("exec") => {
             let sub = args.get(1).cloned();
             match sub.as_deref() {
                 Some("clone") => {
                     args.remove(1); // remove "clone"
-                    let script = cmd_clone(&mut args, &tries_path);
+                    let script = cmd_clone(&args, &tries_path);
                     script::emit_script(&script);
                     std::process::exit(0);
                 }
@@ -97,14 +101,25 @@ fn main() {
                     let full_path = script::worktree_path(&tries_path, &repo_dir, Some(&custom));
                     let script = script::script_worktree(
                         &full_path,
-                        if repo_dir == current_dir() { None } else { Some(&repo_dir) },
+                        if repo_dir == current_dir() {
+                            None
+                        } else {
+                            Some(&repo_dir)
+                        },
                     );
                     script::emit_script(&script);
                     std::process::exit(0);
                 }
                 Some("cd") => {
                     args.remove(1); // remove "cd"
-                    let script = cmd_cd(&mut args, &tries_path, &and_type, and_exit, &and_keys_raw, &and_confirm);
+                    let script = cmd_cd(
+                        &mut args,
+                        &tries_path,
+                        &and_type,
+                        and_exit,
+                        &and_keys_raw,
+                        &and_confirm,
+                    );
                     if let Some(s) = script {
                         script::emit_script(&s);
                         std::process::exit(0);
@@ -115,7 +130,14 @@ fn main() {
                 }
                 _ => {
                     // Default: try exec [query]
-                    let script = cmd_cd(&mut args, &tries_path, &and_type, and_exit, &and_keys_raw, &and_confirm);
+                    let script = cmd_cd(
+                        &mut args,
+                        &tries_path,
+                        &and_type,
+                        and_exit,
+                        &and_keys_raw,
+                        &and_confirm,
+                    );
                     if let Some(s) = script {
                         script::emit_script(&s);
                         std::process::exit(0);
@@ -141,7 +163,11 @@ fn main() {
             let full_path = script::worktree_path(&tries_path, &repo_dir, Some(&custom));
             let script = script::script_worktree(
                 &full_path,
-                if repo_dir == current_dir() { None } else { Some(&repo_dir) },
+                if repo_dir == current_dir() {
+                    None
+                } else {
+                    Some(&repo_dir)
+                },
             );
             script::emit_script(&script);
             std::process::exit(0);
@@ -151,7 +177,14 @@ fn main() {
             // Prepend the command back as a search query
             let mut query_args = vec![cmd.to_string()];
             query_args.extend(args.into_iter().skip(1));
-            let script = cmd_cd(&mut query_args, &tries_path, &and_type, and_exit, &and_keys_raw, &and_confirm);
+            let script = cmd_cd(
+                &mut query_args,
+                &tries_path,
+                &and_type,
+                and_exit,
+                &and_keys_raw,
+                &and_confirm,
+            );
             if let Some(s) = script {
                 script::emit_script(&s);
                 std::process::exit(0);
@@ -161,8 +194,6 @@ fn main() {
             }
         }
     };
-
-    let _ = result;
 }
 
 /// Remove a boolean flag from args (no value). Returns true if present.
@@ -188,7 +219,7 @@ fn extract_option_with_value(args: &mut Vec<String>, opt_name: &str) -> Option<S
     let found = found?;
     let arg = args.remove(found);
     if arg.contains('=') {
-        Some(arg.splitn(2, '=').nth(1).unwrap().to_string())
+        Some(arg.split_once('=').unwrap().1.to_string())
     } else {
         Some(args.remove(found))
     }
@@ -267,7 +298,7 @@ fn current_dir() -> String {
         .unwrap_or_else(|_| ".".to_string())
 }
 
-fn cmd_clone(args: &mut Vec<String>, tries_path: &str) -> Vec<String> {
+fn cmd_clone(args: &[String], tries_path: &str) -> Vec<String> {
     let git_uri = args.get(1).cloned();
     let custom_name = args.get(2).cloned();
 
@@ -280,10 +311,7 @@ fn cmd_clone(args: &mut Vec<String>, tries_path: &str) -> Vec<String> {
         }
     };
 
-    let dir_name = git_uri::generate_clone_directory_name(
-        &git_uri,
-        custom_name.as_deref(),
-    );
+    let dir_name = git_uri::generate_clone_directory_name(&git_uri, custom_name.as_deref());
     let dir_name = match dir_name {
         Some(n) => n,
         None => {
@@ -302,7 +330,7 @@ fn cmd_clone(args: &mut Vec<String>, tries_path: &str) -> Vec<String> {
     }
 }
 
-fn cmd_init(args: &mut Vec<String>, _tries_path: &str) {
+fn cmd_init(args: &[String], _tries_path: &str) {
     let script_path = std::env::current_exe()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|_| std::env::args().next().unwrap_or_default());
@@ -327,7 +355,7 @@ fn cmd_init(args: &mut Vec<String>, _tries_path: &str) {
     println!("{}", snippet);
 }
 
-fn cmd_install(args: &mut Vec<String>, tries_path: &str) {
+fn cmd_install(args: &[String], _tries_path: &str) {
     let script_path = std::env::current_exe()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|_| std::env::args().next().unwrap_or_default());
@@ -422,7 +450,7 @@ fn cmd_cd(
     if let Some(first) = args.get(1).cloned() {
         if first == "clone" {
             let rest: Vec<String> = args[2..].to_vec();
-            return Some(cmd_clone(&mut rest.clone(), tries_path));
+            return Some(cmd_clone(&rest, tries_path));
         }
 
         if first.starts_with('.') {
@@ -475,7 +503,11 @@ fn cmd_cd(
         let full_path = Path::new(tries_path).join(&dir_name);
         let full_path_str = full_path.to_string_lossy().to_string();
         if let Some(pr) = git_uri::github_pr_details(&git_uri) {
-            return Some(script::script_clone_pr(&full_path_str, &pr.git_uri, &pr.pr_id));
+            return Some(script::script_clone_pr(
+                &full_path_str,
+                &pr.git_uri,
+                &pr.pr_id,
+            ));
         } else {
             return Some(script::script_clone(&full_path_str, &git_uri));
         }
@@ -499,13 +531,20 @@ fn cmd_cd(
     let script = match result {
         selector::Selection::Cd { path } => script::script_cd(&path),
         selector::Selection::Mkdir { path } => script::script_mkdir_cd(&path),
-        selector::Selection::Delete { paths, base_path } => script::script_delete(&paths, &base_path),
-        selector::Selection::Rename { old, new, base_path } => {
-            script::script_rename(&base_path, &old, &new)
+        selector::Selection::Delete { paths, base_path } => {
+            script::script_delete(&paths, &base_path)
         }
-        selector::Selection::Ascend { source, dest, basename, base_path } => {
-            script::script_ascend(&source, &dest, &basename, &base_path)
-        }
+        selector::Selection::Rename {
+            old,
+            new,
+            base_path,
+        } => script::script_rename(&base_path, &old, &new),
+        selector::Selection::Ascend {
+            source,
+            dest,
+            basename,
+            base_path,
+        } => script::script_ascend(&source, &dest, &basename, &base_path),
         selector::Selection::Cancel => return None,
     };
 
@@ -520,7 +559,8 @@ fn parse_test_keys(spec: &Option<String>) -> Option<Vec<String>> {
     }
 
     // Detect mode: if contains comma OR is purely uppercase letters/hyphens, use token mode
-    let use_token_mode = spec.contains(',') || spec.chars().all(|c| c.is_ascii_uppercase() || c == '-');
+    let use_token_mode =
+        spec.contains(',') || spec.chars().all(|c| c.is_ascii_uppercase() || c == '-');
 
     if use_token_mode {
         let tokens: Vec<&str> = spec.split(',').map(|s| s.trim()).collect();
