@@ -175,8 +175,8 @@ enum Node {
 }
 
 enum RepKind {
-    Plus,    // one or more
-    Star,    // zero or more
+    Plus,     // one or more
+    Star,     // zero or more
     Question, // zero or one
 }
 
@@ -410,9 +410,17 @@ impl Regex {
             let groups_len = groups.len();
             if let Some(end) = self.match_single(inner, bytes, pos, groups) {
                 if end > pos {
-                    if let Some(final_end) =
-                        self.repeat_backtrack(inner, min, max, count + 1, nodes, idx, bytes, end, groups)
-                    {
+                    if let Some(final_end) = self.repeat_backtrack(
+                        inner,
+                        min,
+                        max,
+                        count + 1,
+                        nodes,
+                        idx,
+                        bytes,
+                        end,
+                        groups,
+                    ) {
                         return Some(final_end);
                     }
                 }
@@ -492,7 +500,9 @@ fn parse_nodes(bytes: &[u8], start: usize, end: usize) -> Option<(Vec<Node>, usi
     let mut i = start;
     while i < end {
         let (node, next) = parse_node(bytes, i, end)?;
-        if let Some(n) = node { nodes.push(n) }
+        if let Some(n) = node {
+            nodes.push(n)
+        }
         i = next;
     }
     Some((nodes, i))
@@ -519,10 +529,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                 _ => unreachable!(),
             };
             pos += 1;
-            return Some((
-                Some(Node::Repeat(Box::new(Node::NonCap(inner)), kind)),
-                pos,
-            ));
+            return Some((Some(Node::Repeat(Box::new(Node::NonCap(inner)), kind)), pos));
         }
         return Some((Some(Node::NonCap(inner)), after));
     }
@@ -540,10 +547,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                 _ => unreachable!(),
             };
             pos += 1;
-            return Some((
-                Some(Node::Repeat(Box::new(Node::Group(inner)), kind)),
-                pos,
-            ));
+            return Some((Some(Node::Repeat(Box::new(Node::Group(inner)), kind)), pos));
         }
         return Some((Some(Node::Group(inner)), after));
     }
@@ -564,10 +568,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                 _ => unreachable!(),
             };
             pos += 1;
-            return Some((
-                Some(Node::Repeat(Box::new(Node::Dot), kind)),
-                pos,
-            ));
+            return Some((Some(Node::Repeat(Box::new(Node::Dot), kind)), pos));
         }
         return Some((Some(Node::Dot), i + 1));
     }
@@ -585,10 +586,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
                         _ => unreachable!(),
                     };
                     pos += 1;
-                    return Some((
-                        Some(Node::Repeat(Box::new(Node::Digit), kind)),
-                        pos,
-                    ));
+                    return Some((Some(Node::Repeat(Box::new(Node::Digit), kind)), pos));
                 }
                 return Some((Some(Node::Digit), i + 2));
             }
@@ -609,10 +607,7 @@ fn parse_node(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>, usize
             _ => unreachable!(),
         };
         pos += 1;
-        return Some((
-            Some(Node::Repeat(Box::new(Node::Literal(b)), kind)),
-            pos,
-        ));
+        return Some((Some(Node::Repeat(Box::new(Node::Literal(b)), kind)), pos));
     }
     Some((Some(Node::Literal(b)), i + 1))
 }
@@ -692,10 +687,7 @@ fn parse_char_class(bytes: &[u8], i: usize, end: usize) -> Option<(Option<Node>,
         };
         pos += 1;
         return Some((
-            Some(Node::Repeat(
-                Box::new(Node::Class { ranges, negate }),
-                kind,
-            )),
+            Some(Node::Repeat(Box::new(Node::Class { ranges, negate }), kind)),
             pos,
         ));
     }

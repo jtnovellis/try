@@ -25,31 +25,44 @@ pub mod terminal {
 
         if rows.is_none() || cols.is_none() {
             if let Some((r, c)) = ioctl_winsize(2) {
-                if r > 0 { rows = rows.or(Some(r)); }
-                if c > 0 { cols = cols.or(Some(c)); }
+                if r > 0 {
+                    rows = rows.or(Some(r));
+                }
+                if c > 0 {
+                    cols = cols.or(Some(c));
+                }
             }
         }
-        if (rows.is_none() || cols.is_none())
-            && std::io::stderr().is_terminal() {
-                if let Some((r, c)) = ioctl_winsize(2) {
-                    if r > 0 { rows = rows.or(Some(r)); }
-                    if c > 0 { cols = cols.or(Some(c)); }
+        if (rows.is_none() || cols.is_none()) && std::io::stderr().is_terminal() {
+            if let Some((r, c)) = ioctl_winsize(2) {
+                if r > 0 {
+                    rows = rows.or(Some(r));
+                }
+                if c > 0 {
+                    cols = cols.or(Some(c));
                 }
             }
-        if (rows.is_none() || cols.is_none())
-            && std::io::stdout().is_terminal() {
-                if let Some((r, c)) = ioctl_winsize(1) {
-                    if r > 0 { rows = rows.or(Some(r)); }
-                    if c > 0 { cols = cols.or(Some(c)); }
+        }
+        if (rows.is_none() || cols.is_none()) && std::io::stdout().is_terminal() {
+            if let Some((r, c)) = ioctl_winsize(1) {
+                if r > 0 {
+                    rows = rows.or(Some(r));
+                }
+                if c > 0 {
+                    cols = cols.or(Some(c));
                 }
             }
-        if (rows.is_none() || cols.is_none())
-            && std::io::stdin().is_terminal() {
-                if let Some((r, c)) = ioctl_winsize(0) {
-                    if r > 0 { rows = rows.or(Some(r)); }
-                    if c > 0 { cols = cols.or(Some(c)); }
+        }
+        if (rows.is_none() || cols.is_none()) && std::io::stdin().is_terminal() {
+            if let Some((r, c)) = ioctl_winsize(0) {
+                if r > 0 {
+                    rows = rows.or(Some(r));
+                }
+                if c > 0 {
+                    cols = cols.or(Some(c));
                 }
             }
+        }
 
         let rows = rows.unwrap_or(24);
         let cols = cols.unwrap_or(80);
@@ -150,14 +163,12 @@ impl SegmentWriter {
         // If text is a FillSegment... but we can't pattern match here.
         // The Ruby version checks if text is a FillSegment; in our API,
         // fill segments use write_fill.
-        self.segments
-            .push(Segment::Text(text::dim(text)));
+        self.segments.push(Segment::Text(text::dim(text)));
         self
     }
 
     pub fn write_bold(&mut self, text: &str) -> &mut Self {
-        self.segments
-            .push(Segment::Text(text::bold(text)));
+        self.segments.push(Segment::Text(text::bold(text)));
         self
     }
 
@@ -293,7 +304,9 @@ impl Line {
 
         // Calculate available space for right
         let used_by_left_center = left_width + center_width + if center_width > 0 { 2 } else { 0 };
-        let available_for_right = max_content.saturating_sub(used_by_left_center).saturating_sub(1);
+        let available_for_right = max_content
+            .saturating_sub(used_by_left_center)
+            .saturating_sub(1);
 
         let mut right_width = 0;
         if !right_text.is_empty() {
@@ -433,7 +446,10 @@ impl Screen {
 
         // Calculate available body space
         let footer_lines = self.footer.lines.len();
-        let body_space = self.height.saturating_sub(current_row).saturating_sub(footer_lines);
+        let body_space = self
+            .height
+            .saturating_sub(current_row)
+            .saturating_sub(footer_lines);
 
         // Render body lines
         let mut body_rendered = 0;
@@ -455,7 +471,11 @@ impl Screen {
 
         // Fill gap with blank lines
         let gap = body_space.saturating_sub(body_rendered);
-        let blank_line = format!("\r{}{}", ansi::CLEAR_EOL, " ".repeat(self.width.saturating_sub(1)));
+        let blank_line = format!(
+            "\r{}{}",
+            ansi::CLEAR_EOL,
+            " ".repeat(self.width.saturating_sub(1))
+        );
         for i in 0..gap {
             if i == gap - 1 && self.footer.lines.is_empty() {
                 buf.push_str(&blank_line);

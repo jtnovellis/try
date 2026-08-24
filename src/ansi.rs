@@ -180,7 +180,11 @@ pub mod metrics {
             return text.len();
         }
 
-        let stripped = if has_escape { strip_ansi(text) } else { text.to_string() };
+        let stripped = if has_escape {
+            strip_ansi(text)
+        } else {
+            text.to_string()
+        };
 
         // Fast path after stripping: pure ASCII
         if stripped.is_ascii() {

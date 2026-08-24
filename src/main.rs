@@ -9,8 +9,8 @@ mod shell;
 mod term;
 mod tui;
 
-use std::path::Path;
 use std::io::Write;
+use std::path::Path;
 
 fn main() {
     let raw_args: Vec<String> = std::env::args().collect();
@@ -21,11 +21,15 @@ fn main() {
     ansi::init_colors_from_env();
 
     // Process color-related flags early (like the Ruby version)
-    let disable_colors = take_flag(&mut args, "--no-colors") || take_flag(&mut args, "--no-expand-tokens");
+    let disable_colors =
+        take_flag(&mut args, "--no-colors") || take_flag(&mut args, "--no-expand-tokens");
     if disable_colors {
         ansi::disable_colors();
     }
-    if std::env::var("NO_COLOR").map(|s| !s.is_empty()).unwrap_or(false) {
+    if std::env::var("NO_COLOR")
+        .map(|s| !s.is_empty())
+        .unwrap_or(false)
+    {
         ansi::disable_colors();
     }
 
@@ -97,14 +101,25 @@ fn main() {
                     let full_path = script::worktree_path(&tries_path, &repo_dir, Some(&custom));
                     let script = script::script_worktree(
                         &full_path,
-                        if repo_dir == current_dir() { None } else { Some(&repo_dir) },
+                        if repo_dir == current_dir() {
+                            None
+                        } else {
+                            Some(&repo_dir)
+                        },
                     );
                     script::emit_script(&script);
                     std::process::exit(0);
                 }
                 Some("cd") => {
                     args.remove(1); // remove "cd"
-                    let script = cmd_cd(&mut args, &tries_path, &and_type, and_exit, &and_keys_raw, &and_confirm);
+                    let script = cmd_cd(
+                        &mut args,
+                        &tries_path,
+                        &and_type,
+                        and_exit,
+                        &and_keys_raw,
+                        &and_confirm,
+                    );
                     if let Some(s) = script {
                         script::emit_script(&s);
                         std::process::exit(0);
@@ -115,7 +130,14 @@ fn main() {
                 }
                 _ => {
                     // Default: try exec [query]
-                    let script = cmd_cd(&mut args, &tries_path, &and_type, and_exit, &and_keys_raw, &and_confirm);
+                    let script = cmd_cd(
+                        &mut args,
+                        &tries_path,
+                        &and_type,
+                        and_exit,
+                        &and_keys_raw,
+                        &and_confirm,
+                    );
                     if let Some(s) = script {
                         script::emit_script(&s);
                         std::process::exit(0);
@@ -141,7 +163,11 @@ fn main() {
             let full_path = script::worktree_path(&tries_path, &repo_dir, Some(&custom));
             let script = script::script_worktree(
                 &full_path,
-                if repo_dir == current_dir() { None } else { Some(&repo_dir) },
+                if repo_dir == current_dir() {
+                    None
+                } else {
+                    Some(&repo_dir)
+                },
             );
             script::emit_script(&script);
             std::process::exit(0);
@@ -151,7 +177,14 @@ fn main() {
             // Prepend the command back as a search query
             let mut query_args = vec![cmd.to_string()];
             query_args.extend(args.into_iter().skip(1));
-            let script = cmd_cd(&mut query_args, &tries_path, &and_type, and_exit, &and_keys_raw, &and_confirm);
+            let script = cmd_cd(
+                &mut query_args,
+                &tries_path,
+                &and_type,
+                and_exit,
+                &and_keys_raw,
+                &and_confirm,
+            );
             if let Some(s) = script {
                 script::emit_script(&s);
                 std::process::exit(0);
@@ -278,10 +311,7 @@ fn cmd_clone(args: &[String], tries_path: &str) -> Vec<String> {
         }
     };
 
-    let dir_name = git_uri::generate_clone_directory_name(
-        &git_uri,
-        custom_name.as_deref(),
-    );
+    let dir_name = git_uri::generate_clone_directory_name(&git_uri, custom_name.as_deref());
     let dir_name = match dir_name {
         Some(n) => n,
         None => {
@@ -473,7 +503,11 @@ fn cmd_cd(
         let full_path = Path::new(tries_path).join(&dir_name);
         let full_path_str = full_path.to_string_lossy().to_string();
         if let Some(pr) = git_uri::github_pr_details(&git_uri) {
-            return Some(script::script_clone_pr(&full_path_str, &pr.git_uri, &pr.pr_id));
+            return Some(script::script_clone_pr(
+                &full_path_str,
+                &pr.git_uri,
+                &pr.pr_id,
+            ));
         } else {
             return Some(script::script_clone(&full_path_str, &git_uri));
         }
@@ -497,13 +531,20 @@ fn cmd_cd(
     let script = match result {
         selector::Selection::Cd { path } => script::script_cd(&path),
         selector::Selection::Mkdir { path } => script::script_mkdir_cd(&path),
-        selector::Selection::Delete { paths, base_path } => script::script_delete(&paths, &base_path),
-        selector::Selection::Rename { old, new, base_path } => {
-            script::script_rename(&base_path, &old, &new)
+        selector::Selection::Delete { paths, base_path } => {
+            script::script_delete(&paths, &base_path)
         }
-        selector::Selection::Ascend { source, dest, basename, base_path } => {
-            script::script_ascend(&source, &dest, &basename, &base_path)
-        }
+        selector::Selection::Rename {
+            old,
+            new,
+            base_path,
+        } => script::script_rename(&base_path, &old, &new),
+        selector::Selection::Ascend {
+            source,
+            dest,
+            basename,
+            base_path,
+        } => script::script_ascend(&source, &dest, &basename, &base_path),
         selector::Selection::Cancel => return None,
     };
 
@@ -518,7 +559,8 @@ fn parse_test_keys(spec: &Option<String>) -> Option<Vec<String>> {
     }
 
     // Detect mode: if contains comma OR is purely uppercase letters/hyphens, use token mode
-    let use_token_mode = spec.contains(',') || spec.chars().all(|c| c.is_ascii_uppercase() || c == '-');
+    let use_token_mode =
+        spec.contains(',') || spec.chars().all(|c| c.is_ascii_uppercase() || c == '-');
 
     if use_token_mode {
         let tokens: Vec<&str> = spec.split(',').map(|s| s.trim()).collect();

@@ -34,7 +34,12 @@ fn sqrt_table(gap: usize) -> f64 {
 
 /// Calculate the fuzzy match score for an entry against a query.
 /// Returns (score, positions) or None if no match.
-pub fn calculate_match(entry: &DirEntry, query: &str, query_lower: &str, query_chars: &[u8]) -> Option<(f64, Vec<usize>)> {
+pub fn calculate_match(
+    entry: &DirEntry,
+    query: &str,
+    query_lower: &str,
+    query_chars: &[u8],
+) -> Option<(f64, Vec<usize>)> {
     let mut positions = Vec::new();
     let mut score = entry.base_score;
 
@@ -105,7 +110,8 @@ pub fn fuzzy_match(entries: &[DirEntry], query: &str) -> Vec<MatchResult> {
 
     let mut results = Vec::new();
     for entry in entries {
-        if let Some((score, positions)) = calculate_match(entry, query, &query_lower, &query_chars) {
+        if let Some((score, positions)) = calculate_match(entry, query, &query_lower, &query_chars)
+        {
             results.push(MatchResult {
                 entry: entry.clone(),
                 score,
@@ -115,7 +121,11 @@ pub fn fuzzy_match(entries: &[DirEntry], query: &str) -> Vec<MatchResult> {
     }
 
     // Sort by score descending (Spinel has no Array#max_by; full sort is fine at scale)
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     results
 }
