@@ -387,10 +387,7 @@ impl TrySelector {
                 return None;
             }
             // Poll stdin with timeout
-            match self.poll_stdin(100) {
-                Some(true) => return term::read_keypress(),
-                _ => {}
-            }
+            if let Some(true) = self.poll_stdin(100) { return term::read_keypress() }
         }
     }
 
@@ -1230,21 +1227,13 @@ fn emoji(ch: &str) -> String {
 
 // FdSet for poll()
 #[repr(C)]
+#[derive(Default)]
 struct FdSet {
     fd: i32,
     events: i16,
     revents: i16,
 }
 
-impl Default for FdSet {
-    fn default() -> Self {
-        FdSet {
-            fd: 0,
-            events: 0,
-            revents: 0,
-        }
-    }
-}
 
 #[allow(non_camel_case_types)]
 type PollFlagsType = i16;

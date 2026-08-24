@@ -44,7 +44,7 @@ fn main() {
     // Extract all options before getting command
     let tries_path = extract_option_with_value(&mut args, "--path")
         .map(|p| expand_path(&p))
-        .unwrap_or_else(|| selector::default_try_path());
+        .unwrap_or_else(selector::default_try_path);
     let tries_path = expand_path(&tries_path);
 
     // Test-only flags
@@ -55,7 +55,7 @@ fn main() {
 
     let command = args.first().cloned();
 
-    let result = match command.as_deref() {
+    match command.as_deref() {
         None => {
             cli::print_global_help();
             std::process::exit(2);
@@ -162,7 +162,7 @@ fn main() {
         }
     };
 
-    let _ = result;
+    ();
 }
 
 /// Remove a boolean flag from args (no value). Returns true if present.
@@ -188,7 +188,7 @@ fn extract_option_with_value(args: &mut Vec<String>, opt_name: &str) -> Option<S
     let found = found?;
     let arg = args.remove(found);
     if arg.contains('=') {
-        Some(arg.splitn(2, '=').nth(1).unwrap().to_string())
+        Some(arg.split_once('=').unwrap().1.to_string())
     } else {
         Some(args.remove(found))
     }
@@ -327,7 +327,7 @@ fn cmd_init(args: &mut Vec<String>, _tries_path: &str) {
     println!("{}", snippet);
 }
 
-fn cmd_install(args: &mut Vec<String>, tries_path: &str) {
+fn cmd_install(args: &mut Vec<String>, _tries_path: &str) {
     let script_path = std::env::current_exe()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|_| std::env::args().next().unwrap_or_default());

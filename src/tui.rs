@@ -29,30 +29,27 @@ pub mod terminal {
                 if c > 0 { cols = cols.or(Some(c)); }
             }
         }
-        if rows.is_none() || cols.is_none() {
-            if std::io::stderr().is_terminal() {
+        if (rows.is_none() || cols.is_none())
+            && std::io::stderr().is_terminal() {
                 if let Some((r, c)) = ioctl_winsize(2) {
                     if r > 0 { rows = rows.or(Some(r)); }
                     if c > 0 { cols = cols.or(Some(c)); }
                 }
             }
-        }
-        if rows.is_none() || cols.is_none() {
-            if std::io::stdout().is_terminal() {
+        if (rows.is_none() || cols.is_none())
+            && std::io::stdout().is_terminal() {
                 if let Some((r, c)) = ioctl_winsize(1) {
                     if r > 0 { rows = rows.or(Some(r)); }
                     if c > 0 { cols = cols.or(Some(c)); }
                 }
             }
-        }
-        if rows.is_none() || cols.is_none() {
-            if std::io::stdin().is_terminal() {
+        if (rows.is_none() || cols.is_none())
+            && std::io::stdin().is_terminal() {
                 if let Some((r, c)) = ioctl_winsize(0) {
                     if r > 0 { rows = rows.or(Some(r)); }
                     if c > 0 { cols = cols.or(Some(c)); }
                 }
             }
-        }
 
         let rows = rows.unwrap_or(24);
         let cols = cols.unwrap_or(80);
@@ -524,7 +521,7 @@ impl Screen {
 
         // Render header
         for line in &self.header.lines {
-            if let Some((ir, ic)) = &input_cursor {
+            if let Some((_ir, ic)) = &input_cursor {
                 if line.has_input() {
                     cursor_row = Some(current_row + 1);
                     cursor_col = Some(line.cursor_column(*ic));
@@ -545,7 +542,7 @@ impl Screen {
             if body_rendered >= body_space {
                 break;
             }
-            if let Some((ir, ic)) = &input_cursor {
+            if let Some((_ir, ic)) = &input_cursor {
                 if line.has_input() {
                     cursor_row = Some(current_row + 1);
                     cursor_col = Some(line.cursor_column(*ic));
@@ -573,7 +570,7 @@ impl Screen {
         // Render footer
         let footer_count = self.footer.lines.len();
         for (idx, line) in self.footer.lines.iter().enumerate() {
-            if let Some((ir, ic)) = &input_cursor {
+            if let Some((_ir, ic)) = &input_cursor {
                 if line.has_input() {
                     cursor_row = Some(current_row + 1);
                     cursor_col = Some(line.cursor_column(*ic));

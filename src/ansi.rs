@@ -243,11 +243,7 @@ pub mod metrics {
         }
 
         let overflow_width = visible_width(overflow);
-        let target = if max_width > overflow_width {
-            max_width - overflow_width
-        } else {
-            0
-        };
+        let target = max_width.saturating_sub(overflow_width);
 
         let mut truncated = String::new();
         let mut width = 0;

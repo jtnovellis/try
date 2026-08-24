@@ -116,7 +116,7 @@ pub fn read_keypress() -> Option<String> {
                     if let Some(ch) = read_nonblock_byte() {
                         result.push(ch);
                         let code = ch as u32;
-                        if code >= 0x40 && code <= 0x7E {
+                        if (0x40..=0x7E).contains(&code) {
                             break;
                         }
                     } else {

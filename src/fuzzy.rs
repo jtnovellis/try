@@ -84,7 +84,7 @@ pub fn calculate_match(entry: &DirEntry, query: &str, query_lower: &str, query_c
         // Proximity bonus (consecutive chars score higher)
         if last_pos >= 0 {
             let gap = (found as i64) - last_pos - 1;
-            if gap >= 0 && gap < 64 {
+            if (0..64).contains(&gap) {
                 score += sqrt_table(gap as usize);
             } else if gap >= 0 {
                 score += 2.0 / ((gap as f64 + 1.0).sqrt());

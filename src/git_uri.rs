@@ -142,10 +142,9 @@ pub fn generate_clone_directory_name(git_uri: &str, custom_name: Option<&str>) -
     // Try PR first, then regular git URI. Both expose user/repo for the name.
     let (user, repo) = if let Some(pr) = github_pr_details(git_uri) {
         (pr.user, pr.repo)
-    } else if let Some(g) = parse_git_uri(git_uri) {
-        (g.user, g.repo)
     } else {
-        return None;
+        let g = parse_git_uri(git_uri)?;
+        (g.user, g.repo)
     };
 
     let date_prefix = crate::date::today_date_prefix();
@@ -414,7 +413,7 @@ impl Regex {
         groups: &mut Vec<String>,
     ) -> Option<usize> {
         // Try matching one more (greedy), unless we've hit max
-        let can_match_more = max.map_or(true, |m| count < m);
+        let can_match_more = max.is_none_or(|m| count < m);
         if can_match_more {
             let groups_len = groups.len();
             if let Some(end) = self.match_single(inner, bytes, pos, groups) {
@@ -501,10 +500,7 @@ fn parse_nodes(bytes: &[u8], start: usize, end: usize) -> Option<(Vec<Node>, usi
     let mut i = start;
     while i < end {
         let (node, next) = parse_node(bytes, i, end)?;
-        match node {
-            Some(n) => nodes.push(n),
-            None => {}
-        }
+        if let Some(n) = node { nodes.push(n) }
         i = next;
     }
     Some((nodes, i))
