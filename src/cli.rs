@@ -16,10 +16,13 @@ Usage:
   try [query]           Interactive directory selector
   try clone <url>       Clone repo into dated directory
   try worktree <name>   Create worktree from current git repo
+  try . <name>          Shorthand for worktree (uses cwd basename)
+  try install           Auto-install shell integration to RC file
   try --help            Show this help
 
 Commands:
   init [path]           Output shell function definition
+  install [path]         Append shell function to RC file
   clone <url> [name]    Clone git repo into date-prefixed directory
   worktree <name>       Create worktree in dated directory
 
@@ -32,6 +35,12 @@ Examples:
 
 Manual mode (without alias):
   try exec [query]      Output shell script to eval
+
+Flags:
+  --path <dir>          Override tries directory for this call
+  --no-colors           Disable ANSI color codes
+  --help, -h            Show this help
+  --version, -v          Show version number
 
 Environment:
   TRY_PATH          Tries directory (default: ~/src/tries)

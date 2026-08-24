@@ -24,7 +24,29 @@ Instantly navigate through all your experiment directories with:
 
 ## Installation
 
-### Build from source (Recommended)
+### Curl install (Recommended)
+
+```bash
+curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh
+```
+
+This downloads a pre-compiled static binary to `~/.local/bin/try`. Then add to your shell:
+
+```bash
+# Bash/Zsh - add to ~/.zshrc or ~/.bashrc
+eval "$(~/.local/bin/try init)"
+
+# Fish - add to ~/.config/fish/config.fish
+~/.local/bin/try init | source
+```
+
+You can also specify a custom tries path and install directory:
+
+```bash
+curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh -s -- --path ~/my-tries --dir /usr/local/bin
+```
+
+### Build from source
 
 ```bash
 git clone https://github.com/jtnovellis/try.git
@@ -219,8 +241,11 @@ automatically removed from URLs when generating directory names.
 
 - `↑/↓` or `Ctrl-P/N/J/K` - Navigate
 - `Enter` - Select or create
+- `Ctrl-R` - Rename directory
+- `Ctrl-G` - Graduate (promote try to project)
+- `Ctrl-D` - Mark for deletion
+- `Ctrl-T` - Create new try
 - `Backspace` - Delete character
-- `Ctrl-D` - Delete directory (with confirmation)
 - `ESC` - Cancel
 - Just type to filter
 
