@@ -117,13 +117,77 @@ nix run github:jtnovellis/try init ~/my-tries
 {
   inputs.try.url = "github:jtnovellis/try";
 
-  imports = [ inputs.try.homeManagerModules.default ];
+  imports = [ inputs.try.homeModules.default ];
 
   programs.try = {
     enable = true;
     path = "~/experiments";  # optional, defaults to ~/src/tries
   };
 }
+```
+
+## Uninstall
+
+### 1. Remove the shell integration
+
+`try` installs itself as a shell *function*, so removing the binary alone is not
+enough. Find the integration first:
+
+```bash
+grep -n "try shell integration\|try init" \
+  ~/.zshrc ~/.bashrc ~/.bash_profile ~/.config/fish/config.fish 2>/dev/null
+```
+
+If you used `try install`, it appended a marked block. Delete the comment and
+the whole function that follows it:
+
+```bash
+# try shell integration
+try() {
+  ...
+}
+```
+
+If you added the line by hand, remove the `eval "$(... try init ...)"` line
+instead (fish: the `try init ... | source` line).
+
+### 2. Remove the binary
+
+```bash
+rm -f ~/.local/bin/try
+```
+
+If you installed with `--dir`, delete it from there instead. To locate it:
+
+```bash
+type -a try
+```
+
+> The `try` function stays defined in shells that are already open, so `try`
+> may still appear to work until you start a new one. To drop it from the
+> current session: `unset -f try` (fish: `functions -e try`).
+
+### 3. Remove your tries (optional)
+
+**This deletes your experiments.** Look before you leap:
+
+```bash
+ls "${TRY_PATH:-$HOME/src/tries}"
+```
+
+Then, only if you are sure:
+
+```bash
+rm -rf "${TRY_PATH:-$HOME/src/tries}"
+```
+
+### Nix / Home Manager
+
+Drop the `programs.try` block and the `inputs.try` entry from your flake, then
+rebuild:
+
+```bash
+home-manager switch
 ```
 
 ## The Problem
