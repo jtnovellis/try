@@ -1,0 +1,19 @@
+[package]
+name = "try"
+version = "1.10.1"
+edition = "2021"
+description = "Fresh directories for every vibe - ephemeral workspace manager"
+license = "MIT"
+authors = ["jtnovellis"]
+homepage = "https://github.com/jtnovellis/try"
+
+[[bin]]
+name = "try"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
