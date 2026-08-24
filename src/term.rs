@@ -1,4 +1,4 @@
-/// Terminal control — raw mode via stty (mirrors TryCompat in try.rb).
+//! Terminal control — raw mode via stty (mirrors TryCompat in try.rb).
 
 use std::process::Command;
 
@@ -112,14 +112,10 @@ pub fn read_keypress() -> Option<String> {
             result.push(nxt);
             if nxt == '[' {
                 // CSI: consume until a final byte in 0x40-0x7E
-                loop {
-                    if let Some(ch) = read_nonblock_byte() {
-                        result.push(ch);
-                        let code = ch as u32;
-                        if (0x40..=0x7E).contains(&code) {
-                            break;
-                        }
-                    } else {
+                while let Some(ch) = read_nonblock_byte() {
+                    result.push(ch);
+                    let code = ch as u32;
+                    if (0x40..=0x7E).contains(&code) {
                         break;
                     }
                 }

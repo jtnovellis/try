@@ -1,5 +1,5 @@
-/// TrySelector — the interactive directory selector.
-/// Port of the TrySelector class in try.rb.
+//! TrySelector — the interactive directory selector.
+//! Port of the TrySelector class in try.rb.
 
 use crate::ansi::{ansi, metrics, palette, text};
 use crate::tui;
@@ -11,7 +11,6 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct TrySelector {
-    search_term: String,
     cursor_pos: usize,
     scroll_offset: usize,
     search: tui::InputField,
@@ -70,7 +69,6 @@ impl TrySelector {
         let test_had_keys = !test_keys.is_empty();
 
         TrySelector {
-            search_term,
             cursor_pos: 0,
             scroll_offset: 0,
             search: tui::InputField::new("", &initial, None),
@@ -192,13 +190,6 @@ impl TrySelector {
                     .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
                     .map(|d| d.as_secs_f64())
                     .unwrap_or(0.0);
-                let ctime = metadata
-                    .created()
-                    .ok()
-                    .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-                    .map(|d| d.as_secs_f64())
-                    .unwrap_or(mtime);
-
                 let hours_since_access = (now - mtime) / 3600.0;
                 let base_score = 3.0 / (hours_since_access + 1.0).sqrt();
 
@@ -230,7 +221,6 @@ impl TrySelector {
                     base_score,
                     path: real_path,
                     is_symlink,
-                    ctime_secs: ctime,
                     mtime_secs: mtime,
                 });
             }
@@ -704,8 +694,7 @@ impl TrySelector {
         let marked_items: Vec<fuzzy::MatchResult> = tries
             .iter()
             .filter(|t| self.marked_for_deletion.contains(&t.entry().path))
-            .cloned()
-            .map(|r| fuzzy::MatchResult::from(&r))
+            .map(fuzzy::MatchResult::from)
             .collect();
 
         if marked_items.is_empty() {

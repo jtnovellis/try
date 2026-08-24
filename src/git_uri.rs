@@ -4,7 +4,6 @@ use std::path::Path;
 pub struct GitUri {
     pub user: String,
     pub repo: String,
-    pub host: String,
 }
 
 pub struct GithubPr {
@@ -16,14 +15,10 @@ pub struct GithubPr {
 
 /// Strip a trailing `.git` suffix from a URI string.
 fn strip_git_suffix(uri: &str) -> &str {
-    if uri.ends_with(".git") {
-        &uri[..uri.len() - 4]
-    } else {
-        uri
-    }
+    uri.strip_suffix(".git").unwrap_or(uri)
 }
 
-/// Parse a git URI into user/repo/host components.
+/// Parse a git URI into user/repo components.
 /// Matches the Ruby `parse_git_uri` ordering exactly.
 pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
     let uri = strip_git_suffix(raw_uri);
@@ -33,7 +28,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[0].clone(),
             repo: caps[1].clone(),
-            host: "github.com".to_string(),
         });
     }
 
@@ -42,7 +36,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[0].clone(),
             repo: caps[1].clone(),
-            host: "github.com".to_string(),
         });
     }
 
@@ -51,7 +44,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[1].clone(),
             repo: caps[2].clone(),
-            host: caps[0].clone(),
         });
     }
 
@@ -65,7 +57,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[1].clone(),
             repo,
-            host: caps[0].clone(),
         });
     }
 
@@ -79,7 +70,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[1].clone(),
             repo,
-            host: caps[0].clone(),
         });
     }
 
@@ -93,7 +83,6 @@ pub fn parse_git_uri(raw_uri: &str) -> Option<GitUri> {
         return Some(GitUri {
             user: caps[0].clone(),
             repo,
-            host: caps[1].clone(),
         });
     }
 
@@ -348,6 +337,7 @@ impl Regex {
         self.match_seq(inner, 0, bytes, pos, groups)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn match_repeat(
         &self,
         inner: &Node,
@@ -384,6 +374,7 @@ impl Regex {
 
     /// Match `min` or more repetitions (up to `max` if specified) of `inner`.
     /// Tries greedily (longest first).
+    #[allow(clippy::too_many_arguments)]
     fn match_repeat_n(
         &self,
         inner: &Node,
@@ -400,6 +391,7 @@ impl Regex {
         self.repeat_backtrack(inner, min, max, 0, nodes, idx, bytes, pos, groups)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn repeat_backtrack(
         &self,
         inner: &Node,

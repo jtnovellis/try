@@ -1,5 +1,5 @@
-/// TUI toolkit — port of lib/tui.rb.
-/// Screen, Line, Section, SegmentWriter, InputField.
+//! TUI toolkit — port of lib/tui.rb.
+//! Screen, Line, Section, SegmentWriter, InputField.
 
 use crate::ansi::{ansi, metrics, palette, text};
 use std::io::Write;
@@ -103,82 +103,31 @@ pub mod terminal {
 /// FillSegment — a repeating pattern to fill available space.
 pub struct FillSegment {
     char: String,
-    style: Option<FillStyle>,
-}
-
-#[derive(Clone, Copy)]
-enum FillStyle {
-    Dim,
-    Bold,
-    Highlight,
-    Accent,
 }
 
 impl FillSegment {
     fn new(ch: &str) -> Self {
         FillSegment {
             char: ch.to_string(),
-            style: None,
-        }
-    }
-    fn with_style(&self, style: FillStyle) -> Self {
-        FillSegment {
-            char: self.char.clone(),
-            style: Some(style),
         }
     }
 }
 
-/// EmojiSegment — precomputed width.
-pub struct EmojiSegment {
-    char: String,
-    width: usize,
-    char_count: usize,
-}
-
-impl EmojiSegment {
-    fn new(ch: &str) -> Self {
-        let mut width = 0;
-        let mut char_count = 0;
-        for ch in ch.chars() {
-            let w = metrics::char_width(ch as u32);
-            width += w;
-            if w > 0 {
-                char_count += 1;
-            }
-        }
-        EmojiSegment {
-            char: ch.to_string(),
-            width,
-            char_count,
-        }
-    }
-
-    fn width_delta(&self) -> i64 {
-        self.width as i64 - self.char_count as i64
-    }
-}
-
-/// A segment in a SegmentWriter — either a string, a fill, or an emoji.
+/// A segment in a SegmentWriter — either a string or a fill.
 enum Segment {
     Text(String),
     Fill(FillSegment),
-    Emoji(EmojiSegment),
 }
 
 /// SegmentWriter — writes left/center/right content for a line.
 pub struct SegmentWriter {
     segments: Vec<Segment>,
-    has_wide: bool,
-    width_delta: i64,
 }
 
 impl SegmentWriter {
     fn new() -> Self {
         SegmentWriter {
             segments: Vec::new(),
-            has_wide: false,
-            width_delta: 0,
         }
     }
 
@@ -193,16 +142,7 @@ impl SegmentWriter {
     pub fn write_fill(&mut self, fill: &FillSegment) -> &mut Self {
         self.segments.push(Segment::Fill(FillSegment {
             char: fill.char.clone(),
-            style: fill.style,
         }));
-        self
-    }
-
-    pub fn write_emoji(&mut self, ch: &str) -> &mut Self {
-        let seg = EmojiSegment::new(ch);
-        self.has_wide = true;
-        self.width_delta += seg.width_delta();
-        self.segments.push(Segment::Emoji(seg));
         self
     }
 
@@ -221,23 +161,12 @@ impl SegmentWriter {
         self
     }
 
-    pub fn write_highlight(&mut self, text: &str) -> &mut Self {
-        self.segments
-            .push(Segment::Text(text::highlight(text)));
-        self
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.segments.is_empty()
-    }
-
     /// Render to a string, given the total width context.
     pub fn to_string(&self, width: usize) -> String {
         let mut rendered = String::new();
         for seg in &self.segments {
             match seg {
                 Segment::Text(s) => rendered.push_str(s),
-                Segment::Emoji(e) => rendered.push_str(&e.char),
                 Segment::Fill(f) => rendered.push_str(&self.render_fill(f, &rendered, width)),
             }
         }
@@ -258,33 +187,8 @@ impl SegmentWriter {
         };
         let pattern_width = metrics::visible_width(&pattern).max(1);
         let repeat = (remaining as f64 / pattern_width as f64).ceil() as usize;
-        let mut filler = pattern.repeat(repeat);
-        filler = metrics::truncate(&filler, remaining, "");
-        self.apply_style(&filler, segment.style)
-    }
-
-    fn apply_style(&self, text: &str, style: Option<FillStyle>) -> String {
-        match style {
-            Some(FillStyle::Dim) => text::dim(text),
-            Some(FillStyle::Bold) => text::bold(text),
-            Some(FillStyle::Highlight) => text::highlight(text),
-            Some(FillStyle::Accent) => text::accent(text),
-            None => text.to_string(),
-        }
-    }
-
-    /// Fast width calculation using precomputed emoji widths.
-    fn visible_width(&self, rendered_str: &str) -> usize {
-        let stripped = if rendered_str.contains('\x1b') {
-            metrics::strip_ansi(rendered_str)
-        } else {
-            rendered_str.to_string()
-        };
-        if self.has_wide {
-            stripped.chars().count() + self.width_delta as usize
-        } else {
-            stripped.len()
-        }
+        let filler = pattern.repeat(repeat);
+        metrics::truncate(&filler, remaining, "")
     }
 }
 
@@ -472,11 +376,6 @@ impl Section {
         self.lines.last_mut().unwrap()
     }
 
-    pub fn add_line_no_truncate(&mut self, background: Option<String>) -> &mut Line {
-        self.lines.push(Line::new(background, false));
-        self.lines.last_mut().unwrap()
-    }
-
     fn clear(&mut self) {
         self.lines.clear();
     }
@@ -611,11 +510,6 @@ impl Screen {
 /// Helper functions for constructing content.
 pub fn fill(char: &str) -> FillSegment {
     FillSegment::new(char)
-}
-
-pub fn emoji(char: &str) -> &str {
-    // Return the emoji string; width is computed by metrics
-    char
 }
 
 /// InputField — editable text field with cursor.

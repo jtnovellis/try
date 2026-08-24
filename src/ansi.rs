@@ -1,4 +1,4 @@
-/// ANSI escape sequences and terminal control — port of Tui::ANSI / Palette / Text.
+//! ANSI escape sequences and terminal control — port of Tui::ANSI / Palette / Text.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -33,24 +33,22 @@ pub fn init_colors_from_env() {
     }
 }
 
+// Nested to mirror the original Tui::ANSI namespace, so call sites read
+// `ansi::CLEAR_EOL` rather than bare constants.
+#[allow(clippy::module_inception)]
 pub mod ansi {
     pub const CLEAR_EOL: &str = "\x1b[K";
-    pub const CLEAR_EOS: &str = "\x1b[J";
-    pub const CLEAR_SCREEN: &str = "\x1b[2J";
     pub const HOME: &str = "\x1b[H";
     pub const HIDE: &str = "\x1b[?25l";
     pub const SHOW: &str = "\x1b[?25h";
     pub const CURSOR_BLINK: &str = "\x1b[1 q";
-    pub const CURSOR_STEADY: &str = "\x1b[2 q";
     pub const CURSOR_DEFAULT: &str = "\x1b[0 q";
     pub const ALT_SCREEN_ON: &str = "\x1b[?1049h";
     pub const ALT_SCREEN_OFF: &str = "\x1b[?1049l";
     pub const RESET: &str = "\x1b[0m";
     pub const RESET_FG: &str = "\x1b[39m";
-    pub const RESET_BG: &str = "\x1b[49m";
     pub const RESET_INTENSITY: &str = "\x1b[22m";
     pub const BOLD: &str = "\x1b[1m";
-    pub const DIM: &str = "\x1b[2m";
 
     pub fn fg(code: u32) -> String {
         format!("\x1b[38;5;{}m", code)
@@ -58,10 +56,6 @@ pub mod ansi {
 
     pub fn bg(code: u32) -> String {
         format!("\x1b[48;5;{}m", code)
-    }
-
-    pub fn move_col(col: usize) -> String {
-        format!("\x1b[{}G", col)
     }
 
     pub fn sgr(codes: &[&str]) -> String {
@@ -77,9 +71,6 @@ pub mod ansi {
 pub mod palette {
     use super::ansi;
 
-    pub fn header() -> String {
-        ansi::sgr(&["1", "38;5;114"])
-    }
     pub fn accent() -> String {
         ansi::sgr(&["1", "38;5;214"])
     }
@@ -88,12 +79,6 @@ pub mod palette {
     }
     pub fn muted() -> String {
         ansi::fg(245)
-    }
-    pub fn match_color() -> String {
-        ansi::sgr(&["1", "38;5;226"])
-    }
-    pub fn input_hint() -> String {
-        ansi::fg(244)
     }
     pub fn input_cursor_on() -> &'static str {
         "\x1b[7m"
@@ -224,18 +209,6 @@ pub mod metrics {
         1
     }
 
-    pub fn zero_width(ch: char) -> bool {
-        let code = ch as u32;
-        (0xFE00..=0xFE0F).contains(&code)
-            || (0x200B..=0x200D).contains(&code)
-            || (0x0300..=0x036F).contains(&code)
-            || (0xE0100..=0xE01EF).contains(&code)
-    }
-
-    pub fn wide(ch: char) -> bool {
-        char_width(ch as u32) == 2
-    }
-
     /// Truncate text to max_width, appending overflow.
     pub fn truncate(text: &str, max_width: usize, overflow: &str) -> String {
         if visible_width(text) <= max_width {
@@ -347,10 +320,9 @@ pub mod metrics {
 
     /// Get the byte length of a UTF-8 character from its first byte.
     fn utf8_char_len(first_byte: u8) -> usize {
-        if first_byte < 0x80 {
+        // < 0x80 is ASCII; 0x80..0xC0 is a continuation byte we cannot start from
+        if first_byte < 0xC0 {
             1
-        } else if first_byte < 0xC0 {
-            1 // continuation byte
         } else if first_byte < 0xE0 {
             2
         } else if first_byte < 0xF0 {

@@ -1,9 +1,5 @@
-/// Fuzzy string matching with scoring and highlight positions.
-/// Direct port of lib/fuzzy.rb.
-
-pub struct FuzzyEntry {
-    pub data: DirEntry,
-}
+//! Fuzzy string matching with scoring and highlight positions.
+//! Direct port of lib/fuzzy.rb.
 
 /// Raw directory entry data loaded from the tries path.
 #[derive(Clone)]
@@ -13,7 +9,6 @@ pub struct DirEntry {
     pub base_score: f64,
     pub path: String,
     pub is_symlink: bool,
-    pub ctime_secs: f64,
     pub mtime_secs: f64,
 }
 
@@ -30,8 +25,6 @@ impl MatchResult {
     }
 }
 
-/// Pre-computed sqrt values for proximity bonus (gap 0-64)
-const SQRT_TABLE_LEN: usize = 65;
 fn sqrt_table(gap: usize) -> f64 {
     // 2.0 / sqrt(gap + 1)
     // Precompute at compile time would be ideal; compute at first use.

@@ -61,23 +61,23 @@ fn main() {
             std::process::exit(2);
         }
         Some("clone") => {
-            let script = cmd_clone(&mut args, &tries_path);
+            let script = cmd_clone(&args, &tries_path);
             script::emit_script(&script);
             std::process::exit(0);
         }
         Some("init") => {
-            cmd_init(&mut args, &tries_path);
+            cmd_init(&args, &tries_path);
             std::process::exit(0);
         }
         Some("install") => {
-            cmd_install(&mut args, &tries_path);
+            cmd_install(&args, &tries_path);
         }
         Some("exec") => {
             let sub = args.get(1).cloned();
             match sub.as_deref() {
                 Some("clone") => {
                     args.remove(1); // remove "clone"
-                    let script = cmd_clone(&mut args, &tries_path);
+                    let script = cmd_clone(&args, &tries_path);
                     script::emit_script(&script);
                     std::process::exit(0);
                 }
@@ -161,8 +161,6 @@ fn main() {
             }
         }
     };
-
-    ();
 }
 
 /// Remove a boolean flag from args (no value). Returns true if present.
@@ -267,7 +265,7 @@ fn current_dir() -> String {
         .unwrap_or_else(|_| ".".to_string())
 }
 
-fn cmd_clone(args: &mut Vec<String>, tries_path: &str) -> Vec<String> {
+fn cmd_clone(args: &[String], tries_path: &str) -> Vec<String> {
     let git_uri = args.get(1).cloned();
     let custom_name = args.get(2).cloned();
 
@@ -302,7 +300,7 @@ fn cmd_clone(args: &mut Vec<String>, tries_path: &str) -> Vec<String> {
     }
 }
 
-fn cmd_init(args: &mut Vec<String>, _tries_path: &str) {
+fn cmd_init(args: &[String], _tries_path: &str) {
     let script_path = std::env::current_exe()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|_| std::env::args().next().unwrap_or_default());
@@ -327,7 +325,7 @@ fn cmd_init(args: &mut Vec<String>, _tries_path: &str) {
     println!("{}", snippet);
 }
 
-fn cmd_install(args: &mut Vec<String>, _tries_path: &str) {
+fn cmd_install(args: &[String], _tries_path: &str) {
     let script_path = std::env::current_exe()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|_| std::env::args().next().unwrap_or_default());
@@ -422,7 +420,7 @@ fn cmd_cd(
     if let Some(first) = args.get(1).cloned() {
         if first == "clone" {
             let rest: Vec<String> = args[2..].to_vec();
-            return Some(cmd_clone(&mut rest.clone(), tries_path));
+            return Some(cmd_clone(&rest, tries_path));
         }
 
         if first.starts_with('.') {
