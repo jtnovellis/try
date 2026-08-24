@@ -1,4 +1,4 @@
-pub const VERSION: &str = "1.10.1";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn print_global_help() {
     eprint!(

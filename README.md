@@ -49,7 +49,7 @@ curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh -
 Or pin a specific release:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh -s -- --version v1.10.1
+curl -sL https://raw.githubusercontent.com/jtnovellis/try/main/install.sh | sh -s -- --version v1.10.2
 ```
 
 Pre-built binaries are published for `x86_64`/`aarch64` on Linux and macOS. If your

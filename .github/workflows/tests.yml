@@ -24,6 +24,19 @@ jobs:
       - name: Clippy
         run: cargo clippy --release --all-targets -- -D warnings
 
+      # flake.nix reads ./VERSION while cargo reads Cargo.toml, so they
+      # have to agree. src/cli.rs derives its value from CARGO_PKG_VERSION.
+      - name: Check VERSION matches Cargo.toml
+        run: |
+          set -eu
+          file_version="$(tr -d '[:space:]' < VERSION)"
+          cargo_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+          echo "VERSION=$file_version Cargo.toml=$cargo_version"
+          if [ "$file_version" != "$cargo_version" ]; then
+            echo "::error::VERSION ($file_version) does not match Cargo.toml ($cargo_version)"
+            exit 1
+          fi
+
   rust-tests:
     runs-on: ubuntu-latest
     steps:
