@@ -241,8 +241,11 @@ automatically removed from URLs when generating directory names.
 
 - `↑/↓` or `Ctrl-P/N/J/K` - Navigate
 - `Enter` - Select or create
+- `Ctrl-R` - Rename directory
+- `Ctrl-G` - Graduate (promote try to project)
+- `Ctrl-D` - Mark for deletion
+- `Ctrl-T` - Create new try
 - `Backspace` - Delete character
-- `Ctrl-D` - Delete directory (with confirmation)
 - `ESC` - Cancel
 - Just type to filter
 

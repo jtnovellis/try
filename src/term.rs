@@ -102,7 +102,7 @@ pub fn is_stderr_tty() -> bool {
 pub fn read_keypress() -> Option<String> {
     use std::io::Read;
     let mut input = [0u8; 1];
-    std::io::stdin().read(&mut input).ok()?;
+    std::io::stdin().read_exact(&mut input).ok()?;
     let input = input[0];
 
     if input == 0x1b {
