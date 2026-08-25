@@ -17,8 +17,10 @@ build: ## Build release binary
 	@echo "Binary at $(TRY)"
 
 .PHONY: test
-test: build ## Run all spec compliance tests
-	@echo "Running tests..."
+test: build ## Run Rust unit tests and the spec compliance suite
+	@echo "Running Rust unit tests..."
+	cargo test
+	@echo "Running spec tests..."
 	bash spec/tests/runner.sh $(TRY)
 
 .PHONY: lint

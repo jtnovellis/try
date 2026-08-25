@@ -26,6 +26,8 @@ pub struct TrySelector {
     test_had_keys: bool,
     test_confirm: Option<String>,
     needs_redraw: bool,
+    /// Last terminal size seen by the input loop, to detect resizes.
+    last_size: (usize, usize),
     // Cached fuzzy results
     cached_query: String,
     cached_results: Vec<fuzzy::MatchResult>,
@@ -56,6 +58,10 @@ pub enum Selection {
     },
     Cancel,
 }
+
+/// Keys the list consumes before the search field sees them.
+/// Up: arrow, Ctrl-P, Ctrl-K. Down: arrow, Ctrl-N, Ctrl-J.
+const NAVIGATION_KEYS: [&str; 6] = ["\x1b[A", "\x10", "\x0b", "\x1b[B", "\x0e", "\x0a"];
 
 pub fn default_try_path() -> String {
     std::env::var("TRY_PATH").unwrap_or_else(|_| {
@@ -100,6 +106,7 @@ impl TrySelector {
             test_had_keys,
             test_confirm,
             needs_redraw: false,
+            last_size: tui::terminal::size(),
             cached_query: String::new(),
             cached_results: Vec::new(),
         }
@@ -288,8 +295,13 @@ impl TrySelector {
                 None => continue,
             };
 
+            // Navigation keys are claimed by the list, not the search field:
+            // the field also binds Ctrl-K (kill-to-end), which would otherwise
+            // shadow Ctrl-K as "move up".
+            let is_navigation = NAVIGATION_KEYS.contains(&key.as_str());
+
             let before = self.search.text.clone();
-            if self.search.handle_key(&key) {
+            if !is_navigation && self.search.handle_key(&key) {
                 if self.search.text != before {
                     self.cursor_pos = 0;
                 }
@@ -400,34 +412,24 @@ impl TrySelector {
             if let Some(true) = self.poll_stdin(100) {
                 return term::read_keypress();
             }
+            // Nothing typed — the window may have been resized in the
+            // meantime. Redraw at the new size instead of leaving a layout
+            // that no longer fits until the next keypress. Cursor position
+            // and scroll offset are struct state, so they carry over.
+            let size = tui::terminal::size();
+            if size != self.last_size {
+                self.last_size = size;
+                self.needs_redraw = true;
+            }
         }
     }
 
-    #[cfg(unix)]
-    fn poll_stdin(&self, timeout_ms: u64) -> Option<bool> {
-        use std::os::fd::AsRawFd;
-
-        let fd = std::io::stdin().as_raw_fd();
-        let mut fds = [FdSet::default()];
-        fds[0].fd = fd;
-        fds[0].events = POLLIN;
-
-        extern "C" {
-            fn poll(fds: *mut FdSet, nfds: u64, timeout: i32) -> i32;
-        }
-
-        // Use poll with millisecond timeout
-        let ret = unsafe { poll(fds.as_mut_ptr(), 1, timeout_ms as i32) };
-        if ret > 0 && (fds[0].revents & POLLIN) != 0 {
+    fn poll_stdin(&self, timeout_ms: i32) -> Option<bool> {
+        if term::stdin_ready(timeout_ms) {
             Some(true)
         } else {
             None
         }
-    }
-
-    #[cfg(not(unix))]
-    fn poll_stdin(&self, _timeout_ms: u64) -> Option<bool> {
-        None
     }
 
     fn clear_screen(&self) {
@@ -1266,18 +1268,3 @@ fn format_relative_time(mtime_secs: f64) -> String {
 fn emoji(ch: &str) -> String {
     ch.to_string()
 }
-
-// FdSet for poll()
-#[repr(C)]
-#[derive(Default)]
-struct FdSet {
-    fd: i32,
-    events: i16,
-    revents: i16,
-}
-
-#[allow(non_camel_case_types)]
-type PollFlagsType = i16;
-
-#[allow(non_upper_case_globals)]
-const POLLIN: PollFlagsType = 0x001;

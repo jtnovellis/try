@@ -13,9 +13,20 @@ The shell function wrapper is necessary because:
 
 The init command should detect the user's shell via the `$SHELL` environment variable and output the appropriate function syntax.
 
+Detection order (shared with `try install`, so both commands always agree):
+
+1. `$SHELL` containing `fish`, `zsh`, or `bash`.
+2. A non-empty `$PSModulePath` — PowerShell.
+3. The parent process name, for `fish`, `zsh`, `bash`, `pwsh`/`powershell`.
+4. Otherwise fall back to the POSIX (bash/zsh) function.
+
+`bash` and `zsh` share one POSIX function; `fish` and `pwsh` each get their own
+syntax. A shell that resolves to `pwsh` must not receive the POSIX snippet.
+
 Supported shells:
 - **Bash/Zsh**: POSIX-compatible function syntax
 - **Fish**: Fish-specific function syntax
+- **PowerShell**: `function try { ... }` with `Invoke-Expression`
 
 ## Function Output Format
 

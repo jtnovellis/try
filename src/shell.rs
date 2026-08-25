@@ -68,17 +68,6 @@ fn getppid() -> u32 {
     unsafe { getppid() }
 }
 
-/// Detect if the current shell is fish (for init command).
-pub fn is_fish() -> bool {
-    let shell = std::env::var("SHELL").unwrap_or_default();
-    if !shell.is_empty() {
-        return shell.contains("fish");
-    }
-    let ppid = std::process::id();
-    let parent = parent_process_name(ppid).unwrap_or_default();
-    parent.contains("fish")
-}
-
 pub fn shell_rc_file(shell: &str) -> Option<String> {
     match shell {
         "fish" => Some("~/.config/fish/config.fish".to_string()),

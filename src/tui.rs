@@ -625,14 +625,15 @@ impl InputField {
             return true;
         }
 
-        // Printable character
-        if key.len() == 1 {
-            let code = key.as_bytes()[0];
-            if code >= 32 && code != 127 {
+        // Printable character — a single scalar, which may be multi-byte UTF-8
+        // (accented letters, CJK, emoji). Testing byte length here would reject
+        // everything outside ASCII.
+        let mut chars = key.chars();
+        if let (Some(ch), None) = (chars.next(), chars.next()) {
+            if !ch.is_control() {
                 self.insert(key);
                 return true;
             }
-            return false;
         }
 
         false

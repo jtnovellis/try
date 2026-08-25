@@ -38,7 +38,15 @@ jobs:
           fi
 
   rust-tests:
-    runs-on: ubuntu-latest
+    # try drives a real terminal, and the tty APIs it depends on differ between
+    # platforms (poll/stty behavior, O_NONBLOCK's value). Linux-only CI cannot
+    # catch a macOS-only hang, so both are built and tested.
+    name: tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -48,6 +56,9 @@ jobs:
 
       - name: Build
         run: cargo build --release
+
+      - name: Run Rust unit tests
+        run: cargo test
 
       - name: Run spec compliance tests
         run: bash spec/tests/runner.sh ./target/release/try
